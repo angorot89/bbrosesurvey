@@ -9,6 +9,12 @@ def _env_list(name, default=''):
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
 
+def _append_unique(items, value):
+    if value and value not in items:
+        items.append(value)
+    return items
+
+
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS', '.railway.app,localhost,127.0.0.1')
 CSRF_TRUSTED_ORIGINS = _env_list(
@@ -16,6 +22,11 @@ CSRF_TRUSTED_ORIGINS = _env_list(
     'https://*.railway.app,http://localhost,http://127.0.0.1'
 )
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+railway_public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '').strip()
+if railway_public_domain:
+    ALLOWED_HOSTS = _append_unique(ALLOWED_HOSTS, railway_public_domain)
+    CSRF_TRUSTED_ORIGINS = _append_unique(CSRF_TRUSTED_ORIGINS, f'https://{railway_public_domain}')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
