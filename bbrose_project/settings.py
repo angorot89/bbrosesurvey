@@ -3,8 +3,19 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-bbrose-internal-app-change-in-production-2024'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+
+
+def _env_list(name, default=''):
+    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
+
+
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS', '.railway.app,localhost,127.0.0.1')
+CSRF_TRUSTED_ORIGINS = _env_list(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://*.railway.app,http://localhost,http://127.0.0.1'
+)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
