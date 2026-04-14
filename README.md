@@ -17,6 +17,19 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+## Railway Deploy
+
+This project now includes:
+- `gunicorn` in `requirements.txt`
+- `whitenoise` for static files
+- a `Procfile` with:
+
+```bash
+python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn bbrose_project.wsgi --log-file -
+```
+
+If Railway still uses a custom start command, make sure it includes `gunicorn` and matches the command above.
+
 ## Access
 
 | URL | Purpose |
