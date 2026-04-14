@@ -1,0 +1,516 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ emp.full_name }} — BBrose Profile</title>
+    <link rel="icon" href="{% static 'questionnaire/img/logo.png' %}" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #0e7490;
+            --cyan-light: #06b6d4;
+            --cyan-bg: #ecfeff;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --white: #ffffff;
+            --font: 'DM Sans', sans-serif;
+            --font-display: 'Playfair Display', serif;
+            --radius: 20px;
+            --shadow: 0 4px 24px rgba(14,116,144,0.10);
+            --shadow-lg: 0 20px 60px rgba(14,116,144,0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            background: linear-gradient(145deg, #f0f9ff 0%, #ffffff 50%, #f8fafc 100%);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        /* ── Nav ── */
+        .nav {
+            position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--gray-light);
+        }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .nav-logo img { width: 36px; height: 36px; object-fit: contain; }
+        .nav-logo span {
+            font-family: var(--font-display);
+            font-size: 1.1rem; font-weight: 700;
+            color: var(--cyan);
+        }
+        .nav-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 50px;
+            background: var(--cyan-bg); color: var(--cyan);
+            font-size: 0.8rem; font-weight: 600;
+            border: 1px solid rgba(14,116,144,0.2);
+        }
+        .nav-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan-light); display: inline-block; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+
+        /* ── Hero ── */
+        .hero {
+            max-width: 960px; margin: 0 auto;
+            padding: 48px 24px 24px;
+            display: flex; align-items: center; gap: 40px;
+            flex-wrap: wrap;
+        }
+        .hero-photo-wrap {
+            position: relative; flex-shrink: 0;
+        }
+        .hero-photo {
+            width: 140px; height: 140px; border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--white);
+            box-shadow: 0 0 0 4px var(--cyan), var(--shadow-lg);
+        }
+        .hero-photo-placeholder {
+            width: 140px; height: 140px; border-radius: 50%;
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; color: var(--cyan);
+            border: 4px solid var(--white);
+            box-shadow: 0 0 0 4px var(--cyan), var(--shadow-lg);
+        }
+        .hero-info { flex: 1; min-width: 200px; }
+        .hero-name {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 4vw, 2.4rem);
+            color: var(--dark); font-weight: 700;
+            line-height: 1.2; margin-bottom: 8px;
+        }
+        .hero-role {
+            display: inline-block; padding: 6px 16px; border-radius: 50px;
+            background: var(--cyan-bg); color: var(--cyan);
+            font-size: 0.9rem; font-weight: 600;
+            border: 1px solid rgba(14,116,144,0.25);
+            margin-bottom: 16px;
+        }
+        .hero-id {
+            font-size: 0.85rem; color: var(--gray);
+            letter-spacing: 0.06em; text-transform: uppercase;
+            font-weight: 500;
+        }
+        .hero-id strong { color: var(--cyan); font-weight: 700; }
+        .hero-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+        .hero-meta-item { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--gray); }
+
+        /* ── Card Section ── */
+        .section {
+            max-width: 960px; margin: 0 auto;
+            padding: 24px;
+        }
+        .section-label {
+            font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.12em;
+            color: var(--gray); margin-bottom: 16px;
+        }
+
+        .card-preview-wrap {
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+        .card-img {
+            max-width: 100%; border-radius: 18px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-light);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-img:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 28px 70px rgba(14,116,144,0.18);
+        }
+
+        /* ── Actions ── */
+        .actions {
+            max-width: 960px; margin: 0 auto;
+            padding: 8px 24px 48px;
+            display: flex; gap: 12px; flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 13px 28px; border-radius: 50px;
+            font-family: var(--font); font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; border: none; text-decoration: none;
+            transition: all 0.25s ease;
+        }
+        .btn-primary {
+            background: var(--cyan); color: #fff;
+            box-shadow: 0 4px 16px rgba(14,116,144,0.28);
+        }
+        .btn-primary:hover { background: #0c6580; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14,116,144,0.35); }
+        .btn-outline {
+            background: transparent; color: var(--cyan);
+            border: 1.5px solid var(--cyan);
+        }
+        .btn-outline:hover { background: var(--cyan-bg); transform: translateY(-2px); }
+        .btn-ghost {
+            background: #f8fafc; color: var(--gray);
+            border: 1.5px solid var(--gray-light);
+        }
+        .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+        .btn-danger {
+            background: transparent; color: #dc2626;
+            border: 1.5px solid #fca5a5;
+        }
+        .btn-danger:hover { background: #fef2f2; }
+
+        /* ── Edit Modal ── */
+        .modal-backdrop {
+            position: fixed; inset: 0; z-index: 500;
+            background: rgba(15,23,42,0.55);
+            backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center;
+            padding: 24px;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: var(--white); border-radius: 24px;
+            width: 100%; max-width: 480px;
+            padding: 36px;
+            box-shadow: 0 32px 80px rgba(15,23,42,0.24);
+            animation: modalPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.94) translateY(16px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.4rem; font-weight: 700;
+            color: var(--dark); margin-bottom: 6px;
+        }
+        .modal-sub { color: var(--gray); font-size: 0.9rem; margin-bottom: 28px; }
+        .field-group { display: flex; flex-direction: column; gap: 16px; }
+        .field-label {
+            font-size: 0.8rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--gray); margin-bottom: 6px; display: block;
+        }
+        .field-input {
+            width: 100%; padding: 13px 16px;
+            border: 1.5px solid var(--gray-light);
+            border-radius: 12px; font-size: 0.95rem;
+            font-family: var(--font); color: var(--dark);
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .field-input:focus {
+            outline: none; border-color: var(--cyan);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(14,116,144,0.08);
+        }
+        .photo-upload-row {
+            display: flex; align-items: center; gap: 16px;
+        }
+        .photo-thumb {
+            width: 64px; height: 64px; border-radius: 50%;
+            object-fit: cover; border: 2px solid var(--gray-light);
+            background: var(--cyan-bg);
+            flex-shrink: 0;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 28px; }
+        .spinner-inline {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+            background: var(--dark); color: #fff;
+            padding: 12px 24px; border-radius: 50px;
+            font-size: 0.9rem; font-weight: 500;
+            box-shadow: 0 8px 24px rgba(15,23,42,0.25);
+            z-index: 1000;
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease;
+            opacity: 0;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { background: #0e7490; }
+        .toast.error { background: #dc2626; }
+
+        /* ── Regen overlay ── */
+        .regen-overlay {
+            display: none; position: fixed; inset: 0; z-index: 800;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(8px);
+            flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+        }
+        .regen-overlay.active { display: flex; }
+        .regen-spinner {
+            width: 52px; height: 52px;
+            border: 3px solid var(--gray-light);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .regen-text { color: var(--gray); font-size: 0.95rem; font-weight: 500; }
+
+        @media (max-width: 640px) {
+            .hero { flex-direction: column; align-items: flex-start; gap: 20px; }
+            .actions { flex-direction: column; }
+            .btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="nav">
+    <a href="/" class="nav-logo">
+        <img src="{% static 'questionnaire/img/logo.png' %}" alt="BBrose">
+        <span>BBrose</span>
+    </a>
+    <span class="nav-badge">Employee Profile</span>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+    <div class="hero-photo-wrap">
+        {% if photo_url %}
+            <img src="{{ photo_url }}" alt="{{ emp.full_name }}" class="hero-photo" id="heroPhoto">
+        {% else %}
+            <div class="hero-photo-placeholder" id="heroPhoto">👤</div>
+        {% endif %}
+    </div>
+    <div class="hero-info">
+        <div class="hero-name" id="heroName">{{ emp.full_name }}</div>
+        <div class="hero-role" id="heroRole">{{ emp.role|default:"Team Member" }}</div>
+        <div class="hero-id">Employee ID: <strong>{{ emp.employee_id }}</strong></div>
+        <div class="hero-meta">
+            {% if emp.email %}
+            <div class="hero-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                {{ emp.email }}
+            </div>
+            {% endif %}
+            {% if emp.phone %}
+            <div class="hero-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.07 3.4 2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z"/></svg>
+                {{ emp.phone }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ── ID Card Preview ── -->
+<div class="section">
+    <div class="section-label">Identity Badge</div>
+    <div class="card-preview-wrap">
+        {% if id_card_url %}
+            <img src="{{ id_card_url }}" alt="ID Card" class="card-img" id="cardImg">
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Actions ── -->
+<div class="actions">
+    {% if id_card_url %}
+    <a href="{{ id_card_url }}" download="BBrose_IDCard_{{ emp.employee_id }}.png" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PNG
+    </a>
+    <button class="btn btn-outline" id="downloadPdfBtn" onclick="downloadPDF()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Download PDF
+    </button>
+    {% endif %}
+    <button class="btn btn-ghost" onclick="openEditModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit My Info
+    </button>
+    <button class="btn btn-danger" onclick="regenerateBadge()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Regenerate Badge
+    </button>
+</div>
+
+<!-- ── Edit Modal ── -->
+<div class="modal-backdrop" id="editModalBackdrop" onclick="closeEditModal(event)">
+    <div class="modal">
+        <div class="modal-title">Edit My Info</div>
+        <div class="modal-sub">Changes will update your ID badge instantly.</div>
+        <div class="field-group">
+            <div>
+                <label class="field-label">Full Name</label>
+                <input type="text" class="field-input" id="editName" value="{{ emp.full_name }}" placeholder="Your full name">
+            </div>
+            <div>
+                <label class="field-label">Role</label>
+                <input type="text" class="field-input" id="editRole" value="{{ emp.role|default:'' }}" placeholder="Your role">
+            </div>
+            <div>
+                <label class="field-label">Photo</label>
+                <div class="photo-upload-row">
+                    {% if photo_url %}
+                        <img src="{{ photo_url }}" class="photo-thumb" id="editPhotoThumb">
+                    {% else %}
+                        <div class="photo-thumb" id="editPhotoThumb" style="display:flex;align-items:center;justify-content:center;color:#64748b;">👤</div>
+                    {% endif %}
+                    <label class="btn btn-ghost" style="cursor:pointer;font-size:0.85rem;padding:10px 18px;">
+                        Change Photo
+                        <input type="file" id="editPhotoInput" accept="image/*" style="display:none;" onchange="previewEditPhoto(this)">
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" id="saveBtn" onclick="saveChanges()">
+                <div class="spinner-inline" id="saveSpinner"></div>
+                <span id="saveBtnText">Save Changes</span>
+            </button>
+            <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Regen Overlay ── -->
+<div class="regen-overlay" id="regenOverlay">
+    <div class="regen-spinner"></div>
+    <div class="regen-text">Regenerating your badge…</div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+    const EMPLOYEE_ID = '{{ emp.employee_id }}';
+
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type}`;
+        void t.offsetWidth;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3200);
+    }
+
+    function openEditModal() {
+        document.getElementById('editModalBackdrop').classList.add('open');
+    }
+
+    function closeEditModal(e) {
+        if (!e || e.target === document.getElementById('editModalBackdrop')) {
+            document.getElementById('editModalBackdrop').classList.remove('open');
+        }
+    }
+
+    function previewEditPhoto(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const thumb = document.getElementById('editPhotoThumb');
+                thumb.outerHTML = `<img src="${e.target.result}" class="photo-thumb" id="editPhotoThumb">`;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    async function saveChanges() {
+        const btn = document.getElementById('saveBtn');
+        const spinner = document.getElementById('saveSpinner');
+        const btnText = document.getElementById('saveBtnText');
+        btn.disabled = true;
+        spinner.style.display = 'block';
+        btnText.textContent = 'Saving…';
+
+        const name = document.getElementById('editName').value.trim();
+        const role = document.getElementById('editRole').value.trim();
+        const photoFile = document.getElementById('editPhotoInput').files[0];
+
+        const formData = new FormData();
+        formData.append('data', JSON.stringify({ full_name: name, role: role }));
+        if (photoFile) formData.append('photo', photoFile);
+
+        try {
+            const res = await fetch(`/api/update/${EMPLOYEE_ID}/`, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('heroName').textContent = data.full_name;
+                document.getElementById('heroRole').textContent = data.role || 'Team Member';
+                if (data.photo_url) {
+                    const heroPhoto = document.getElementById('heroPhoto');
+                    heroPhoto.outerHTML = `<img src="${data.photo_url}?t=${Date.now()}" alt="${data.full_name}" class="hero-photo" id="heroPhoto">`;
+                }
+                const cardImg = document.getElementById('cardImg');
+                if (cardImg) cardImg.src = data.id_card_url + '?t=' + Date.now();
+                closeEditModal();
+                showToast('Profile updated successfully!', 'success');
+            } else {
+                showToast('Update failed. Try again.', 'error');
+            }
+        } catch {
+            showToast('Network error.', 'error');
+        } finally {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+            btnText.textContent = 'Save Changes';
+        }
+    }
+
+    async function regenerateBadge() {
+        const overlay = document.getElementById('regenOverlay');
+        overlay.classList.add('active');
+        try {
+            const res = await fetch(`/api/regenerate/${EMPLOYEE_ID}/`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                const cardImg = document.getElementById('cardImg');
+                if (cardImg) cardImg.src = data.id_card_url + '?t=' + Date.now();
+                showToast('Badge regenerated!', 'success');
+            } else {
+                showToast('Regeneration failed.', 'error');
+            }
+        } catch {
+            showToast('Network error.', 'error');
+        } finally {
+            overlay.classList.remove('active');
+        }
+    }
+
+    function downloadPDF() {
+        const img = document.getElementById('cardImg');
+        if (!img) return;
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 148] });
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const image = new Image();
+            image.crossOrigin = 'anonymous';
+            image.onload = () => {
+                canvas.width = image.naturalWidth;
+                canvas.height = image.naturalHeight;
+                ctx.drawImage(image, 0, 0);
+                const imgData = canvas.toDataURL('image/png');
+                const pdfW = pdf.internal.pageSize.getWidth();
+                const pdfH = pdf.internal.pageSize.getHeight();
+                const ratio = Math.min(pdfW / image.naturalWidth, pdfH / image.naturalHeight);
+                const w = image.naturalWidth * ratio;
+                const h = image.naturalHeight * ratio;
+                pdf.addImage(imgData, 'PNG', (pdfW - w) / 2, (pdfH - h) / 2, w, h);
+                pdf.save(`BBrose_IDCard_${EMPLOYEE_ID}.pdf`);
+            };
+            image.src = img.src;
+        };
+        document.head.appendChild(script);
+    }
+</script>
+</body>
+</html>

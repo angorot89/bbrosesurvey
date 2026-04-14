@@ -1,0 +1,2801 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBrose — Digital Questionnaire</title>
+    <link rel="icon" href="{% static 'questionnaire/img/logo.png' %}" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #0e7490;
+            --cyan-light: #06b6d4;
+            --cyan-bg: #ecfeff;
+            --cyan-50: #f0f9ff;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --white: #ffffff;
+            --radius: 16px;
+            --shadow: 0 4px 24px rgba(14,116,144,0.08);
+            --shadow-lg: 0 12px 48px rgba(14,116,144,0.12);
+            --font: 'DM Sans', sans-serif;
+            --font-display: 'Playfair Display', serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font);
+            background: var(--white);
+            color: var(--dark);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        html[dir="rtl"] body { direction: rtl; text-align: right; }
+
+        /* ─── SCREENS ─── */
+        .screen {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            transform: translateY(20px);
+            z-index: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .screen.active {
+            opacity: 1; pointer-events: all;
+            transform: translateY(0);
+            z-index: 10;
+        }
+
+        /* ─── LANDING ─── */
+        #landing {
+            background:
+                radial-gradient(ellipse 80% 60% at 15% 10%, rgba(255,182,193,0.22) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 55% at 85% 85%, rgba(186,230,253,0.28) 0%, transparent 55%),
+                radial-gradient(ellipse 60% 50% at 65% 35%, rgba(216,180,254,0.15) 0%, transparent 50%),
+                linear-gradient(155deg, #ffffff 0%, #f0f9ff 35%, #fdf4ff 65%, #ecfeff 100%);
+            overflow: hidden;
+            gap: 0;
+        }
+        #sparkleCanvas {
+            position: absolute; inset: 0;
+            pointer-events: none; z-index: 0;
+        }
+        /* Floating makeup items */
+        .mk-item {
+            position: absolute; z-index: 1;
+            opacity: 0; pointer-events: none;
+            will-change: transform, opacity;
+            filter: drop-shadow(0 6px 20px rgba(0,0,0,0.10)) drop-shadow(0 2px 8px rgba(190,24,93,0.08));
+        }
+        .mk-1 { top: -130px; left: 9%;  animation: mkFall1 3.2s cubic-bezier(0.25,0.46,0.45,0.94) 0.2s forwards; }
+        .mk-2 { top: -155px; right: 7%; animation: mkFall2 3.8s cubic-bezier(0.25,0.46,0.45,0.94) 0.5s forwards; }
+        .mk-3 { top: -120px; right: 21%;animation: mkFall3 3.0s cubic-bezier(0.25,0.46,0.45,0.94) 0.9s forwards; }
+        .mk-4 { top: -100px; left: 22%; animation: mkFall4 3.5s cubic-bezier(0.25,0.46,0.45,0.94) 0.7s forwards; }
+        .mk-5 { top: -115px; left: 53%; animation: mkFall5 3.2s cubic-bezier(0.25,0.46,0.45,0.94) 0.4s forwards; }
+        @keyframes mkFall1 {
+            0%   { opacity:0; transform:translateY(0) rotate(-18deg); }
+            15%  { opacity:0.9; }
+            100% { opacity:0.82; transform:translateY(calc(17vh + 120px)) rotate(6deg); }
+        }
+        @keyframes mkFall2 {
+            0%   { opacity:0; transform:translateY(0) rotate(22deg); }
+            15%  { opacity:0.85; }
+            100% { opacity:0.75; transform:translateY(calc(23vh + 140px)) rotate(-4deg); }
+        }
+        @keyframes mkFall3 {
+            0%   { opacity:0; transform:translateY(0) rotate(-6deg); }
+            15%  { opacity:0.9; }
+            100% { opacity:0.72; transform:translateY(calc(12vh + 110px)) rotate(14deg); }
+        }
+        @keyframes mkFall4 {
+            0%   { opacity:0; transform:translateY(0) rotate(12deg); }
+            15%  { opacity:0.85; }
+            100% { opacity:0.65; transform:translateY(calc(27vh + 90px)) rotate(-8deg); }
+        }
+        @keyframes mkFall5 {
+            0%   { opacity:0; transform:translateY(0) rotate(-3deg); }
+            15%  { opacity:0.8; }
+            100% { opacity:0.62; transform:translateY(calc(8vh + 100px)) rotate(10deg); }
+        }
+        /* Landing content wrapper */
+        .landing-content {
+            position: relative; z-index: 10;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 18px;
+            text-align: center;
+        }
+        /* Logo reveal */
+        .logo-container {
+            width: 240px;
+            opacity: 0;
+            background: none !important;
+            animation: logoReveal 1.0s cubic-bezier(0.34,1.56,0.64,1) 1.8s forwards;
+        }
+        .logo-container img {
+            width: 100%; height: auto; display: block;
+            background: none;
+            /* Resting drop-shadow: subtle natural depth */
+            filter:
+                drop-shadow(0 6px 18px rgba(0,0,0,0.13))
+                drop-shadow(0 2px 6px rgba(14,116,144,0.09));
+        }
+        .logo-container.glowing img {
+            animation: logoFloat 3.8s ease-in-out infinite;
+        }
+        @keyframes logoReveal {
+            from {
+                opacity: 0;
+                transform: scale(0.55) translateY(20px);
+                filter: blur(14px) drop-shadow(0 0 0 transparent);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0px);
+                filter:
+                    blur(0)
+                    drop-shadow(0 6px 18px rgba(0,0,0,0.13))
+                    drop-shadow(0 2px 6px rgba(14,116,144,0.09));
+            }
+        }
+        @keyframes logoFloat {
+            0%, 100% {
+                transform: translateY(0px);
+                filter:
+                    drop-shadow(0 6px 18px rgba(0,0,0,0.13))
+                    drop-shadow(0 2px 6px rgba(14,116,144,0.09));
+            }
+            50% {
+                transform: translateY(-10px);
+                filter:
+                    drop-shadow(0 16px 32px rgba(0,0,0,0.09))
+                    drop-shadow(0 4px 16px rgba(14,116,144,0.13))
+                    drop-shadow(0 0 28px rgba(190,24,93,0.07));
+            }
+        }
+        /* Tagline letter animation */
+        .landing-tagline {
+            display:block;
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem,4vw,2.2rem); font-weight:600;
+            background: linear-gradient(135deg,#0e7490 0%,#7e22ce 50%,#9d174d 100%);
+            -webkit-background-clip:text; background-clip:text; color:transparent;
+            letter-spacing:-0.02em; min-height:2.8rem;
+            text-align:center;
+            white-space:pre-wrap;
+        }
+        .tl {
+            display:inline-block; opacity:0;
+            transform:rotateY(90deg) translateY(8px);
+            transition:opacity 0.3s ease, transform 0.38s cubic-bezier(0.34,1.3,0.64,1);
+        }
+        .tl.in { opacity:1; transform:rotateY(0) translateY(0); }
+        /* Accent line */
+        .landing-line {
+            width:48px; height:2px;
+            background:linear-gradient(90deg,#0e7490,#be185d);
+            border-radius:2px; opacity:0;
+            transform:scaleX(0); transform-origin:center;
+            transition:opacity 0.5s ease, transform 0.5s ease;
+        }
+        .landing-line.in { opacity:1; transform:scaleX(1); }
+        /* Subtitle */
+        .landing-sub {
+            font-size:0.8rem; color:var(--gray);
+            letter-spacing:0.18em; text-transform:uppercase;
+            opacity:0; transform:translateY(10px);
+            transition:opacity 0.6s ease, transform 0.6s ease;
+        }
+        .landing-sub.in { opacity:1; transform:translateY(0); }
+        /* CTA */
+        .cta-wrap {
+            margin-top:8px; opacity:0; transform:translateY(32px);
+            transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .cta-wrap.in { opacity:1; transform:translateY(0); }
+        .btn-cta {
+            display:inline-flex; align-items:center; gap:10px;
+            padding:16px 40px; border-radius:50px;
+            font-family:var(--font); font-size:1rem; font-weight:600;
+            cursor:pointer; border:none; text-decoration:none;
+            background:linear-gradient(135deg,#0e7490,#0891b2 40%,#9d174d);
+            background-size:200% 200%;
+            color:#fff;
+            box-shadow:0 8px 28px rgba(14,116,144,0.28),0 4px 14px rgba(157,23,77,0.18);
+            transition:transform 0.3s ease, box-shadow 0.3s ease;
+            animation:ctaShift 5s ease infinite;
+        }
+        @keyframes ctaShift {
+            0%,100% { background-position:0% 50%; }
+            50%     { background-position:100% 50%; }
+        }
+        .btn-cta:hover {
+            transform:translateY(-3px) scale(1.05);
+            box-shadow:0 14px 36px rgba(14,116,144,0.38),0 8px 20px rgba(157,23,77,0.28),0 0 0 6px rgba(14,116,144,0.1);
+        }
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(16px); }
+        }
+
+        /* ─── LANGUAGE ─── */
+        #language { background: var(--white); gap: 20px; }
+        .lang-title {
+            font-family: var(--font-display);
+            font-size: 1.6rem; color: var(--dark);
+            margin-bottom: 12px;
+        }
+        .lang-options { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 380px; }
+        .lang-btn {
+            display: flex; align-items: center; gap: 16px;
+            padding: 18px 24px;
+            border: 1.5px solid var(--gray-light);
+            border-radius: var(--radius);
+            background: var(--white);
+            cursor: pointer; font-size: 1.05rem;
+            font-family: var(--font);
+            transition: all 0.25s ease;
+            color: var(--dark);
+        }
+        .lang-btn:hover {
+            border-color: var(--cyan);
+            background: var(--cyan-bg);
+            transform: translateX(4px);
+            box-shadow: var(--shadow);
+        }
+        html[dir="rtl"] .lang-btn:hover { transform: translateX(-4px); }
+        .lang-flag { font-size: 1.6rem; }
+
+        /* ─── INTRO ─── */
+        #intro { background: var(--white); }
+        .intro-card {
+            max-width: 640px; width: 100%;
+            padding: 48px; border-radius: var(--radius);
+            background: var(--white);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-light);
+        }
+        .intro-text {
+            font-size: 1.1rem; line-height: 1.8;
+            color: var(--dark); min-height: 260px;
+            margin-bottom: 32px;
+        }
+        .typing-cursor {
+            display: inline-block; width: 2px; height: 1.1em;
+            background: var(--cyan); margin-left: 2px;
+            animation: blink 0.8s infinite;
+            vertical-align: text-bottom;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* ─── BUTTONS ─── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-family: var(--font);
+            font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; border: none;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--cyan); color: var(--white);
+            box-shadow: 0 4px 16px rgba(14,116,144,0.25);
+        }
+        .btn-primary:hover {
+            background: #0c6580;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(14,116,144,0.3);
+        }
+        .btn-outline {
+            background: transparent; color: var(--cyan);
+            border: 1.5px solid var(--cyan);
+        }
+        .btn-outline:hover { background: var(--cyan-bg); }
+        .btn-ghost { background: transparent; color: var(--gray); border: 1.5px solid var(--gray-light); }
+        .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+        /* ─── QUESTIONNAIRE ─── */
+        #questionnaire {
+            background: var(--white);
+            flex-direction: column;
+            padding-top: 80px;
+        }
+
+        .progress-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 4px; background: var(--gray-light);
+            z-index: 100;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, var(--cyan), var(--cyan-light));
+            transition: width 0.4s ease; width: 0%;
+            border-radius: 0 2px 2px 0;
+        }
+        .progress-label {
+            position: fixed; top: 14px; right: 24px;
+            font-size: 0.8rem; color: var(--gray);
+            z-index: 100; font-weight: 500;
+        }
+        html[dir="rtl"] .progress-label { right: auto; left: 24px; }
+
+        .phase-badge {
+            display: inline-block;
+            padding: 6px 16px; border-radius: 50px;
+            background: var(--cyan-bg); color: var(--cyan);
+            font-size: 0.8rem; font-weight: 600;
+            margin-bottom: 16px; letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .q-card {
+            max-width: 580px; width: 100%;
+            text-align: center;
+            animation: slideIn 0.4s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .q-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.3rem, 3vw, 1.7rem);
+            color: var(--dark); margin-bottom: 32px;
+            line-height: 1.4;
+        }
+        .group-fields {
+            display: grid;
+            gap: 20px;
+            text-align: left;
+        }
+        .group-field {
+            display: grid;
+            gap: 10px;
+        }
+        .group-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark);
+            line-height: 1.5;
+        }
+        html[dir="rtl"] .group-fields { text-align: right; }
+        .doc-type-switch {
+            display: inline-flex;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--gray-light);
+            border-radius: 999px;
+            padding: 6px;
+            margin-bottom: 14px;
+        }
+        .doc-type-btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 999px;
+            background: transparent;
+            color: var(--gray);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .doc-type-btn.active {
+            background: linear-gradient(135deg, #0e7490, #0891b2);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(14,116,144,0.2);
+        }
+
+        .q-input {
+            width: 100%; padding: 16px 20px;
+            border: 1.5px solid var(--gray-light);
+            border-radius: 12px; font-size: 1rem;
+            font-family: var(--font);
+            background: var(--white);
+            transition: all 0.25s ease;
+            color: var(--dark);
+            text-align: center;
+        }
+        .q-input:focus {
+            outline: none; border-color: var(--cyan);
+            box-shadow: 0 0 0 4px rgba(14,116,144,0.08);
+        }
+        html[dir="rtl"] .q-input { text-align: center; }
+
+        textarea.q-input { min-height: 120px; resize: vertical; text-align: left; }
+        html[dir="rtl"] textarea.q-input { text-align: right; }
+
+        .q-nav {
+            display: flex; gap: 12px; margin-top: 40px;
+            justify-content: center; flex-wrap: wrap;
+        }
+        .q-error {
+            margin-top: 12px;
+            color: #dc2626;
+            font-size: 0.9rem;
+            min-height: 1.2rem;
+        }
+        .q-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 4px rgba(239,68,68,0.08);
+        }
+
+        /* Personal review */
+        #personalReview { background: var(--white); }
+        .review-card {
+            max-width: 860px; width: 100%;
+            padding: 42px;
+            border-radius: 28px;
+            border: 1px solid rgba(14,116,144,0.12);
+            box-shadow: 0 24px 60px rgba(15,23,42,0.08);
+            background:
+                radial-gradient(circle at top right, rgba(14,116,144,0.06), transparent 28%),
+                linear-gradient(180deg, #ffffff 0%, #f8fbfc 100%);
+            animation: slideIn 0.4s ease;
+        }
+        .review-hero {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 22px;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 22px;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid rgba(14,116,144,0.1);
+        }
+        .review-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 24px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #dff6fb, #eef9ff);
+            border: 2px solid rgba(14,116,144,0.14);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cyan);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .review-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .review-hero-meta {
+            display: grid;
+            gap: 8px;
+        }
+        .review-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 3vw, 2rem);
+            color: var(--dark);
+            margin: 0;
+        }
+        .review-subtitle {
+            color: var(--gray);
+            margin: 0;
+            line-height: 1.7;
+        }
+        .review-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .review-item {
+            display: grid;
+            gap: 14px;
+            padding: 18px 18px 16px;
+            border: 1px solid rgba(148,163,184,0.18);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 10px 24px rgba(15,23,42,0.04);
+        }
+        .review-item-main {
+            min-width: 0;
+        }
+        .review-label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--gray);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .review-value {
+            color: var(--dark);
+            font-size: 1rem;
+            line-height: 1.5;
+            word-break: break-word;
+            font-weight: 600;
+        }
+        .review-photo {
+            width: 100%;
+            height: 176px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid var(--gray-light);
+            background: var(--cyan-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .review-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .review-item-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .review-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(148,163,184,0.18);
+        }
+
+        /* Phase transition */
+        #phaseTransition { background: radial-gradient(circle at top, #f0f9ff 0%, #ffffff 65%); }
+        .transition-card {
+            max-width: 620px;
+            width: 100%;
+            text-align: center;
+            padding: 44px 36px;
+            border-radius: 28px;
+            border: 1px solid rgba(14,116,144,0.14);
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 24px 60px rgba(14,116,144,0.12);
+            animation: phasePop 0.75s cubic-bezier(0.22,1,0.36,1);
+        }
+        .transition-icon {
+            width: 78px;
+            height: 78px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #fff;
+            background: linear-gradient(135deg, #0e7490, #be185d);
+            box-shadow: 0 14px 32px rgba(14,116,144,0.24);
+        }
+        .transition-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.7rem, 4vw, 2.3rem);
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+        .transition-text {
+            color: var(--gray);
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+        .transition-phase {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            background: var(--cyan-bg);
+            color: var(--cyan);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        @keyframes phasePop {
+            from { opacity: 0; transform: translateY(24px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Photo upload */
+        .photo-upload-area {
+            display: flex; flex-direction: column; align-items: center; gap: 16px;
+        }
+        .photo-preview {
+            width: 140px; height: 140px;
+            border-radius: 50%; overflow: hidden;
+            border: 3px dashed var(--gray-light);
+            display: flex; align-items: center; justify-content: center;
+            background: var(--cyan-50);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .photo-preview:hover { border-color: var(--cyan); }
+        .photo-preview img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .photo-preview .placeholder {
+            color: var(--gray); font-size: 0.85rem;
+            text-align: center; padding: 8px;
+        }
+        .photo-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .photo-actions .btn { padding: 10px 20px; font-size: 0.85rem; }
+
+        /* Camera modal */
+        .camera-modal {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            display: none; align-items: center; justify-content: center;
+            flex-direction: column; gap: 16px; padding: 24px;
+        }
+        .camera-modal.open { display: flex; }
+        .camera-modal video, .camera-modal canvas {
+            max-width: 100%; max-height: 60vh;
+            border-radius: 12px;
+        }
+
+        /* ─── TRUST ─── */
+        #trust { background: var(--white); }
+        .trust-card {
+            max-width: 520px; width: 100%;
+            text-align: center; padding: 48px;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-light);
+            box-shadow: var(--shadow-lg);
+        }
+        .trust-icon { font-size: 2.5rem; margin-bottom: 16px; }
+        .trust-text {
+            font-size: 1.05rem; line-height: 1.7; color: var(--gray);
+            margin-bottom: 28px;
+        }
+        .trust-checkbox {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; margin-bottom: 28px;
+            cursor: pointer; font-size: 0.95rem;
+        }
+        .trust-checkbox input {
+            width: 20px; height: 20px; accent-color: var(--cyan);
+            cursor: pointer;
+        }
+
+        /* ─── THANK YOU ─── */
+        #thankyou { background: var(--white); }
+        .thankyou-wrap {
+            max-width: 900px; width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 32px; padding: 24px 0;
+        }
+        .thankyou-header {
+            text-align: center;
+        }
+        .thankyou-header h1 {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 4vw, 2.4rem);
+            color: var(--dark); margin-bottom: 8px;
+        }
+        .thankyou-header p { color: var(--gray); font-size: 1rem; }
+        .thankyou-side-text {
+            font-size: 1rem; color: var(--gray);
+            text-align: center; font-style: italic;
+            max-width: 500px;
+        }
+
+        .id-card-container {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-light);
+            overflow: hidden;
+            max-width: 700px; width: 100%;
+        }
+        .id-card-container img {
+            width: 100%; display: block;
+        }
+        .id-card-actions {
+            display: flex; gap: 12px; justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ─── LOADING OVERLAY ─── */
+        .loading-overlay {
+            position: fixed; inset: 0; z-index: 999;
+            background: rgba(255,255,255,0.95);
+            display: none; align-items: center; justify-content: center;
+            flex-direction: column; gap: 20px;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 3px solid var(--gray-light);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 640px) {
+            .intro-card { padding: 28px 20px; }
+            .trust-card { padding: 28px 20px; }
+            .review-card { padding: 28px 20px; }
+            .q-nav { flex-direction: column; align-items: stretch; }
+            .q-nav .btn { justify-content: center; }
+            .review-hero { grid-template-columns: 1fr; text-align: center; }
+            .review-avatar { margin: 0 auto; }
+            .review-grid { grid-template-columns: 1fr; }
+            .review-item {
+                padding: 16px;
+            }
+            .review-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* ══════════════════════════════════════════════
+           ─── ID CARD EXPERIENCE ───
+        ══════════════════════════════════════════════ */
+
+        #thankyou {
+            background: linear-gradient(145deg, #f0f9ff 0%, #ffffff 45%, #fdf4ff 80%, #ecfeff 100%);
+            overflow: hidden;
+            padding: 24px 16px;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .ty-layout {
+            width: 100%; max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            grid-template-rows: auto 1fr;
+            gap: 24px;
+            min-height: 100%;
+        }
+
+        /* ── Header ── */
+        .ty-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 12px 0 0;
+        }
+        .ty-header h1 {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            color: var(--dark);
+            margin-bottom: 6px;
+        }
+        .ty-header p { color: var(--gray); font-size: 0.95rem; }
+
+        /* ── Side badge animation ── */
+        .ty-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 16px 0;
+        }
+        .badge-anim-wrap {
+            position: relative;
+            perspective: 600px;
+        }
+        .badge-anim-card {
+            width: 170px; height: 105px;
+            border-radius: 14px;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: badgeSpin 4s ease-in-out infinite;
+            box-shadow: 0 16px 40px rgba(14,116,144,0.22);
+        }
+        @keyframes badgeSpin {
+            0%   { transform: rotateY(0deg) rotateX(4deg); }
+            40%  { transform: rotateY(180deg) rotateX(-4deg); }
+            50%  { transform: rotateY(180deg) rotateX(-4deg); }
+            90%  { transform: rotateY(360deg) rotateX(4deg); }
+            100% { transform: rotateY(360deg) rotateX(4deg); }
+        }
+        .badge-face {
+            position: absolute; inset: 0;
+            border-radius: 14px;
+            backface-visibility: hidden;
+        }
+        .badge-front {
+            background: linear-gradient(140deg, #06102a 0%, #130722 50%, #071c2e 100%);
+            border: 1px solid rgba(6,182,212,0.22);
+            display: flex; flex-direction: column;
+            padding: 10px 14px; gap: 5px;
+            overflow: hidden;
+        }
+        .badge-front::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, #f43f5e, #f97316, #06b6d4, #8b5cf6, #f43f5e);
+            background-size: 300% 100%;
+            animation: rainbowShift 3s linear infinite;
+        }
+        .badge-front::after {
+            content: '';
+            position: absolute; top: -30px; right: -30px;
+            width: 80px; height: 80px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(6,182,212,0.2) 0%, transparent 70%);
+        }
+        .badge-front-logo {
+            font-size: 0.58rem; font-weight: 800;
+            color: #67e8f9;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(6,182,212,0.5);
+        }
+        .badge-front-name {
+            font-size: 0.72rem; font-weight: 700;
+            color: #ffffff; line-height: 1.2;
+        }
+        .badge-front-role {
+            font-size: 0.56rem; color: rgba(103,232,249,0.7);
+        }
+        .badge-front-id {
+            margin-top: auto;
+            font-size: 0.5rem; color: rgba(6,182,212,0.6);
+            font-family: monospace; letter-spacing: 0.08em;
+        }
+        .badge-back {
+            background: linear-gradient(135deg, #0d1b2a, #130722);
+            transform: rotateY(180deg);
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(139,92,246,0.3);
+        }
+        .badge-back-inner {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .badge-back-qr {
+            width: 44px; height: 44px;
+            background: repeating-conic-gradient(#06b6d4 0% 25%, transparent 0% 50%) 0 0 / 8px 8px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(6,182,212,0.3);
+        }
+        .badge-back-text {
+            font-size: 0.5rem; color: rgba(103,232,249,0.55); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.12em;
+        }
+        .badge-caption {
+            font-size: 0.78rem; color: var(--gray);
+            text-align: center; font-weight: 500;
+            letter-spacing: 0.02em;
+            line-height: 1.5;
+            max-width: 160px;
+        }
+        .badge-caption strong { color: var(--cyan); display: block; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+
+        /* ── Main card area ── */
+        .ty-main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 8px 0 24px;
+        }
+
+        /* ── 3D Card Scene ── */
+        .card-scene {
+            width: 100%; max-width: 560px;
+            height: 320px;
+            perspective: 900px;
+            cursor: pointer;
+            position: relative;
+        }
+        .card-float-wrap {
+            width: 100%; height: 100%;
+            animation: cardFloat 5s ease-in-out infinite;
+        }
+        @keyframes cardFloat {
+            0%,100% { transform: translateY(0px); }
+            50%      { transform: translateY(-10px); }
+        }
+        .id-card-3d {
+            width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.08s ease-out;
+            position: relative;
+        }
+        /* ══ DARK LUXURY CARD ══ */
+        .card-html {
+            width: 100%; height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(140deg, #06102a 0%, #130722 42%, #071c2e 100%);
+            box-shadow:
+                0 4px 8px rgba(0,0,0,0.5),
+                0 16px 40px rgba(0,0,0,0.5),
+                0 32px 64px rgba(6,182,212,0.14),
+                0 0 0 1px rgba(255,255,255,0.06);
+            overflow: hidden;
+            position: relative;
+        }
+        /* Holographic light overlay */
+        .card-shine {
+            position: absolute; inset: 0; z-index: 20;
+            border-radius: 20px;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            background: radial-gradient(ellipse at 55% 25%, rgba(6,182,212,0.1) 0%, transparent 55%);
+            transition: background 0.1s ease;
+        }
+        /* Ambient glow blobs */
+        .card-glow-a {
+            position: absolute; width: 220px; height: 220px;
+            top: -70px; left: -50px;
+            background: radial-gradient(circle, rgba(6,182,212,0.22) 0%, transparent 70%);
+            filter: blur(32px); pointer-events: none; z-index: 0;
+        }
+        .card-glow-b {
+            position: absolute; width: 200px; height: 200px;
+            bottom: -60px; right: -30px;
+            background: radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 70%);
+            filter: blur(28px); pointer-events: none; z-index: 0;
+        }
+        .card-glow-c {
+            position: absolute; width: 140px; height: 140px;
+            bottom: 20px; left: 110px;
+            background: radial-gradient(circle, rgba(244,63,94,0.18) 0%, transparent 70%);
+            filter: blur(22px); pointer-events: none; z-index: 0;
+        }
+        /* Rainbow shimmer top bar */
+        .card-rainbow-bar {
+            height: 4px; position: relative; z-index: 5;
+            background: linear-gradient(90deg,
+                #f43f5e, #f97316, #eab308, #22c55e,
+                #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e);
+            background-size: 400% 100%;
+            animation: rainbowShift 4s linear infinite;
+        }
+        @keyframes rainbowShift {
+            from { background-position: 0% 0%; }
+            to   { background-position: -400% 0%; }
+        }
+        /* Top brand row */
+        .card-top-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 11px 18px 6px;
+            position: relative; z-index: 5;
+        }
+        .card-brand { display: flex; align-items: center; gap: 9px; }
+        .card-brand-logo {
+            width: 26px; height: 26px; object-fit: contain;
+            filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(6,182,212,0.6));
+        }
+        .card-brand-name {
+            font-size: 0.8rem; font-weight: 800;
+            color: #ffffff; letter-spacing: 0.2em; text-transform: uppercase;
+            text-shadow: 0 0 12px rgba(6,182,212,0.5);
+        }
+        .card-brand-sub {
+            font-size: 0.42rem; color: rgba(255,255,255,0.38);
+            letter-spacing: 0.2em; text-transform: uppercase; margin-top: 1px;
+        }
+        .card-holotag {
+            font-size: 0.46rem; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            padding: 3px 9px; border-radius: 4px;
+            background: linear-gradient(135deg, rgba(6,182,212,0.18), rgba(139,92,246,0.18));
+            border: 1px solid rgba(6,182,212,0.38);
+            color: #67e8f9;
+        }
+        /* Main body */
+        .card-main-body {
+            display: flex; gap: 0;
+            padding: 6px 18px 10px;
+            height: calc(100% - 4px - 46px - 26px);
+            position: relative; z-index: 5;
+        }
+        /* Left: photo + QR */
+        .card-photo-section {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 8px;
+            flex-shrink: 0; padding-right: 16px;
+            border-right: 1px solid rgba(255,255,255,0.07);
+            justify-content: center;
+        }
+        .cb-photo {
+            width: 108px; height: 108px; border-radius: 50%;
+            object-fit: cover;
+            box-shadow:
+                0 0 0 2px #06b6d4,
+                0 0 0 5px rgba(6,182,212,0.18),
+                0 0 22px rgba(6,182,212,0.4),
+                0 8px 24px rgba(0,0,0,0.6);
+        }
+        .cb-photo-placeholder {
+            width: 108px; height: 108px; border-radius: 50%;
+            background: linear-gradient(135deg, #0e4f6e 0%, #4c1d95 100%);
+            display: flex; align-items: center; justify-content: center; font-size: 2.4rem;
+            box-shadow:
+                0 0 0 2px #06b6d4,
+                0 0 0 5px rgba(6,182,212,0.18),
+                0 0 22px rgba(6,182,212,0.4),
+                0 8px 24px rgba(0,0,0,0.6);
+        }
+        .cb-qr-img {
+            width: 66px; height: 66px; border-radius: 8px;
+            background: #ffffff; padding: 4px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+        }
+        .cb-qr-label {
+            font-size: 0.44rem; color: rgba(255,255,255,0.35);
+            text-transform: uppercase; letter-spacing: 0.14em; text-align: center;
+        }
+        /* Right: info */
+        .card-info-section {
+            flex: 1; min-width: 0;
+            display: flex; flex-direction: column;
+            justify-content: center; padding-left: 16px;
+        }
+        .cb-name {
+            font-size: 1.12rem; font-weight: 800;
+            color: #ffffff; line-height: 1.15; margin-bottom: 7px;
+            text-shadow: 0 0 18px rgba(6,182,212,0.28);
+        }
+        .cb-role-tag {
+            display: inline-block; padding: 4px 12px; border-radius: 50px;
+            background: linear-gradient(135deg, rgba(6,182,212,0.22), rgba(139,92,246,0.22));
+            border: 1px solid rgba(6,182,212,0.42);
+            color: #67e8f9;
+            font-size: 0.58rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            margin-bottom: 10px;
+        }
+        .cb-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 9px; }
+        .cb-field { margin-bottom: 7px; }
+        .cb-field-label {
+            font-size: 0.46rem; color: rgba(255,255,255,0.32);
+            text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600;
+        }
+        .cb-field-value { font-size: 0.68rem; color: rgba(255,255,255,0.78); font-weight: 500; }
+        .cb-id-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(6,182,212,0.1);
+            border: 1px solid rgba(6,182,212,0.42);
+            border-radius: 7px; padding: 5px 11px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em;
+            color: #06b6d4; margin-top: 4px;
+            box-shadow: 0 0 14px rgba(6,182,212,0.18), inset 0 0 8px rgba(6,182,212,0.06);
+        }
+        /* Footer bar */
+        .card-footer-bar {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 26px;
+            background: linear-gradient(90deg,
+                rgba(6,182,212,0.07) 0%,
+                rgba(139,92,246,0.07) 50%,
+                rgba(244,63,94,0.05) 100%);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 18px; z-index: 5;
+        }
+        .card-footer-text {
+            font-size: 0.46rem; color: rgba(255,255,255,0.28);
+            letter-spacing: 0.12em; text-transform: uppercase;
+        }
+
+        /* ── Card action buttons ── */
+        .card-actions {
+            display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+        }
+        .btn-card {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 11px 22px; border-radius: 50px;
+            font-family: var(--font); font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; border: none;
+            transition: all 0.25s ease;
+        }
+        .btn-card-primary {
+            background: var(--cyan); color: #fff;
+            box-shadow: 0 4px 14px rgba(14,116,144,0.28);
+        }
+        .btn-card-primary:hover { background: #0c6580; transform: translateY(-2px); box-shadow: 0 8px 22px rgba(14,116,144,0.35); }
+        .btn-card-outline { background: transparent; color: var(--cyan); border: 1.5px solid var(--cyan); }
+        .btn-card-outline:hover { background: var(--cyan-bg); transform: translateY(-2px); }
+        .btn-card-ghost { background: #f8fafc; color: var(--gray); border: 1.5px solid #e2e8f0; }
+        .btn-card-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+
+        /* ── Edit Side Panel ── */
+        .edit-panel-backdrop {
+            position: fixed; inset: 0; z-index: 400;
+            background: rgba(15,23,42,0.45);
+            backdrop-filter: blur(6px);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .edit-panel-backdrop.open { opacity: 1; pointer-events: all; }
+        .edit-panel {
+            position: fixed; top: 0; right: -480px; bottom: 0;
+            width: 420px; max-width: 95vw;
+            background: #ffffff;
+            z-index: 500;
+            box-shadow: -20px 0 60px rgba(15,23,42,0.18);
+            transition: right 0.38s cubic-bezier(0.4,0,0.2,1);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .edit-panel.open { right: 0; }
+        .edit-panel-header {
+            padding: 28px 28px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex; align-items: flex-start; justify-content: space-between;
+        }
+        .edit-panel-title {
+            font-family: var(--font-display);
+            font-size: 1.3rem; font-weight: 700;
+            color: var(--dark);
+        }
+        .edit-panel-sub { color: var(--gray); font-size: 0.85rem; margin-top: 4px; }
+        .edit-panel-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--gray); font-size: 1.4rem; padding: 4px;
+            border-radius: 8px; transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .edit-panel-close:hover { background: #f1f5f9; color: var(--dark); }
+        .edit-panel-body { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+        .ep-field { display: flex; flex-direction: column; gap: 7px; }
+        .ep-label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray); }
+        .ep-input {
+            width: 100%; padding: 13px 16px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem; font-family: var(--font); color: var(--dark);
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .ep-input:focus { outline: none; border-color: var(--cyan); background: #fff; box-shadow: 0 0 0 4px rgba(14,116,144,0.08); }
+        .ep-photo-row { display: flex; align-items: center; gap: 14px; }
+        .ep-photo-preview {
+            width: 72px; height: 72px; border-radius: 50%;
+            object-fit: cover; border: 2px solid #e0f2fe;
+            outline: 2px solid #0e7490; outline-offset: 2px;
+            flex-shrink: 0;
+        }
+        .ep-photo-placeholder {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; flex-shrink: 0;
+            border: 2px solid #e0f2fe;
+            outline: 2px solid #0e7490; outline-offset: 2px;
+        }
+        .ep-upload-label {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 18px; border-radius: 50px;
+            background: #f8fafc; color: var(--gray);
+            border: 1.5px solid #e2e8f0;
+            font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .ep-upload-label:hover { border-color: var(--cyan); color: var(--cyan); }
+        .edit-panel-footer {
+            padding: 20px 28px;
+            border-top: 1px solid #e2e8f0;
+            display: flex; gap: 10px;
+        }
+        .ep-save-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 14px; border-radius: 50px;
+            background: var(--cyan); color: #fff;
+            font-family: var(--font); font-size: 0.95rem; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(14,116,144,0.28);
+            transition: all 0.25s ease;
+        }
+        .ep-save-btn:hover { background: #0c6580; transform: translateY(-1px); }
+        .ep-save-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+        .ep-cancel-btn {
+            padding: 14px 22px; border-radius: 50px;
+            background: #f8fafc; color: var(--gray);
+            border: 1.5px solid #e2e8f0;
+            font-family: var(--font); font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .ep-cancel-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+        .ep-spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        /* ── Toast notification ── */
+        .id-toast {
+            position: fixed; bottom: 28px; left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--dark); color: #fff;
+            padding: 13px 26px; border-radius: 50px;
+            font-size: 0.9rem; font-weight: 500;
+            box-shadow: 0 8px 28px rgba(15,23,42,0.22);
+            z-index: 1000;
+            transition: transform 0.38s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+            opacity: 0; pointer-events: none;
+        }
+        .id-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .id-toast.success { background: #0e7490; }
+        .id-toast.error   { background: #dc2626; }
+
+        /* ── Responsive ── */
+        @media (max-width: 780px) {
+            .ty-layout { grid-template-columns: 1fr; }
+            .ty-side { flex-direction: row; justify-content: center; gap: 24px; }
+            .card-scene { height: 260px; }
+            .badge-anim-card { width: 130px; height: 82px; }
+        }
+        @media (max-width: 520px) {
+            .ty-side { display: none; }
+            .card-scene { height: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════ LANDING ═══════════════════ -->
+<div class="screen active" id="landing">
+    <canvas id="sparkleCanvas"></canvas>
+
+    <!-- Floating makeup items -->
+    <div class="mk-item mk-1">
+        <svg width="48" height="108" viewBox="0 0 48 108" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="14" y="58" width="20" height="45" rx="5" fill="#1a0030"/>
+          <rect x="14" y="58" width="20" height="45" rx="5" fill="url(#lsG)"/>
+          <rect x="12" y="53" width="24" height="8" rx="4" fill="#C9A84C"/>
+          <rect x="15" y="22" width="18" height="33" fill="#B5224E"/>
+          <polygon points="15,22 24,5 33,22" fill="#E91E63"/>
+          <line x1="19" y1="20" x2="23" y2="7" stroke="rgba(255,255,255,0.28)" stroke-width="2.5" stroke-linecap="round"/>
+          <defs><linearGradient id="lsG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+            <stop offset="50%" stop-color="rgba(255,255,255,0.18)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,0.12)"/>
+          </linearGradient></defs>
+        </svg>
+    </div>
+
+    <div class="mk-item mk-2">
+        <svg width="28" height="138" viewBox="0 0 28 138" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="56" width="8" height="79" rx="4" fill="#8B6914"/>
+          <rect x="11.5" y="59" width="3.5" height="72" rx="1.75" fill="rgba(255,255,255,0.12)"/>
+          <rect x="8" y="46" width="12" height="13" rx="3" fill="#C9A84C"/>
+          <ellipse cx="14" cy="34" rx="11" ry="14" fill="#F0DDB8"/>
+          <ellipse cx="14" cy="30" rx="8" ry="10" fill="#EDD5A0"/>
+          <ellipse cx="14" cy="23" rx="6" ry="8" fill="#E8CC98"/>
+          <ellipse cx="11.5" cy="26" rx="2.5" ry="6" fill="rgba(255,255,255,0.2)"/>
+        </svg>
+    </div>
+
+    <div class="mk-item mk-3">
+        <svg width="50" height="98" viewBox="0 0 50 98" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="28" width="34" height="65" rx="9" fill="#F2E0CC"/>
+          <rect x="8" y="28" width="34" height="65" rx="9" fill="url(#fbG)"/>
+          <rect x="19" y="6" width="12" height="25" rx="4" fill="#D4AF37"/>
+          <rect x="28" y="8" width="14" height="5" rx="2.5" fill="#B8860B"/>
+          <rect x="12" y="48" width="26" height="30" rx="4" fill="rgba(255,255,255,0.55)"/>
+          <rect x="16" y="54" width="18" height="2.5" rx="1.25" fill="#C9A84C"/>
+          <rect x="18" y="61" width="14" height="1.5" rx="0.75" fill="rgba(180,120,80,0.45)"/>
+          <rect x="20" y="67" width="10" height="1.5" rx="0.75" fill="rgba(180,120,80,0.35)"/>
+          <rect x="10" y="31" width="5" height="22" rx="2.5" fill="rgba(255,255,255,0.28)"/>
+          <defs><linearGradient id="fbG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>
+            <stop offset="60%" stop-color="transparent"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,0.07)"/>
+          </linearGradient></defs>
+        </svg>
+    </div>
+
+    <div class="mk-item mk-4">
+        <svg width="62" height="42" viewBox="0 0 62 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="58" height="34" rx="7" fill="#2D1B2E"/>
+          <rect x="2" y="6" width="58" height="34" rx="7" fill="url(#palG)"/>
+          <circle cx="16" cy="18" r="7.5" fill="#C2185B"/>
+          <circle cx="31" cy="18" r="7.5" fill="#E65100"/>
+          <circle cx="46" cy="18" r="7.5" fill="#D4AF37"/>
+          <circle cx="16" cy="32" r="5.5" fill="#4A148C"/>
+          <circle cx="31" cy="32" r="5.5" fill="#B71C1C"/>
+          <circle cx="46" cy="32" r="5.5" fill="#880E4F"/>
+          <ellipse cx="14" cy="15" rx="2.5" ry="3" fill="rgba(255,255,255,0.18)"/>
+          <rect x="26" y="2" width="10" height="5" rx="2.5" fill="#C9A84C"/>
+          <defs><linearGradient id="palG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </linearGradient></defs>
+        </svg>
+    </div>
+
+    <div class="mk-item mk-5">
+        <svg width="30" height="78" viewBox="0 0 30 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="7" y="30" width="16" height="44" rx="6" fill="#FF4081"/>
+          <rect x="7" y="30" width="16" height="44" rx="6" fill="url(#npG)"/>
+          <rect x="8" y="10" width="14" height="22" rx="5" fill="#1A0030"/>
+          <rect x="14" y="20" width="2.5" height="12" rx="1.25" fill="#D4AF37"/>
+          <rect x="9" y="33" width="4" height="16" rx="2" fill="rgba(255,255,255,0.22)"/>
+          <defs><linearGradient id="npG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,0.1)"/>
+          </linearGradient></defs>
+        </svg>
+    </div>
+
+    <!-- Main content -->
+    <div class="landing-content">
+        <div class="logo-container" id="logoContainer">
+            <img src="{% static 'questionnaire/img/logo_transparent.png' %}" alt="BBrose">
+        </div>
+        <div class="landing-tagline" id="landingTagline"></div>
+        <div class="landing-line" id="landingLine"></div>
+        <p class="landing-sub" id="landingSub">A New Digital Generation</p>
+        <div class="cta-wrap" id="ctaWrap">
+            <button class="btn-cta" onclick="goTo('language')">
+                Get Started
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ LANGUAGE ═══════════════════ -->
+<div class="screen" id="language">
+    <p class="lang-title">Choose your language</p>
+    <div class="lang-options">
+        <button class="lang-btn" onclick="setLanguage('en')">
+            <span class="lang-flag">🇬🇧</span> Continue in English
+        </button>
+        <button class="lang-btn" onclick="setLanguage('zh')">
+            <span class="lang-flag">🇨🇳</span> 继续使用中文
+        </button>
+        <button class="lang-btn" onclick="setLanguage('ar')">
+            <span class="lang-flag">🇸🇦</span> المتابعة باللغة العربية
+        </button>
+    </div>
+</div>
+
+<!-- ═══════════════════ INTRO ═══════════════════ -->
+<div class="screen" id="intro">
+    <div class="intro-card">
+        <div class="intro-text" id="introText"><span class="typing-cursor"></span></div>
+        <div style="text-align:center;">
+            <button class="btn btn-primary" id="startBtn" style="display:none;" onclick="goTo('questionnaire'); initQuestionnaire();">
+                <span data-i18n="start">Start</span>
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ QUESTIONNAIRE ═══════════════════ -->
+<div class="screen" id="questionnaire">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel"></div>
+    <div class="q-card" id="qCard"></div>
+</div>
+
+<!-- ═══════════════════ PERSONAL REVIEW ═══════════════════ -->
+<div class="screen" id="personalReview">
+    <div class="progress-bar"><div class="progress-fill" id="personalReviewProgress"></div></div>
+    <div class="progress-label" id="personalReviewLabel"></div>
+    <div class="review-card" id="personalReviewCard"></div>
+</div>
+
+<!-- ═══════════════════ PHASE TRANSITION ═══════════════════ -->
+<div class="screen" id="phaseTransition">
+    <div class="transition-card" id="phaseTransitionCard"></div>
+</div>
+
+<!-- ═══════════════════ TRUST ═══════════════════ -->
+<div class="screen" id="trust">
+    <div class="trust-card">
+        <div class="trust-icon">🔒</div>
+        <h2 style="font-family:var(--font-display);margin-bottom:16px;" data-i18n="trust_title">Before you submit</h2>
+        <p class="trust-text" data-i18n="trust_text">Your responses are confidential and used only to improve workflows and build internal AI tools.</p>
+        <label class="trust-checkbox">
+            <input type="checkbox" id="consentBox" onchange="document.getElementById('submitBtn').disabled = !this.checked;">
+            <span data-i18n="trust_agree">I understand and agree</span>
+        </label>
+        <button class="btn btn-primary" id="submitBtn" disabled onclick="submitAll();">
+            <span data-i18n="finish">Finish</span>
+        </button>
+    </div>
+</div>
+
+<!-- ═══════════════════ THANK YOU / ID CARD ═══════════════════ -->
+<div class="screen" id="thankyou">
+    <div class="ty-layout">
+
+        <!-- Header -->
+        <div class="ty-header">
+            <h1 data-i18n="thank_title">Welcome to BBrose</h1>
+            <p data-i18n="thank_sub">Your digital identity badge is ready.</p>
+        </div>
+
+        <!-- Side: animated badge preview -->
+        <div class="ty-side">
+            <div class="badge-anim-wrap">
+                <div class="badge-anim-card">
+                    <!-- Front face -->
+                    <div class="badge-face badge-front">
+                        <div class="badge-front-logo">BBrose</div>
+                        <div class="badge-front-name" id="badgeName">—</div>
+                        <div class="badge-front-role" id="badgeRole">Employee</div>
+                        <div class="badge-front-id" id="badgeId">BBR-XXXXXXXX</div>
+                    </div>
+                    <!-- Back face -->
+                    <div class="badge-face badge-back">
+                        <div class="badge-back-inner">
+                            <div class="badge-back-qr"></div>
+                            <div class="badge-back-text">Scan to View</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="badge-caption">
+                <strong>BBrose Identity</strong>
+                Your BBrose Identity Badge
+            </div>
+        </div>
+
+        <!-- Main: interactive 3D card -->
+        <div class="ty-main">
+            <!-- 3D Card Scene -->
+            <div class="card-scene" id="cardScene">
+                <div class="card-float-wrap">
+                    <div class="id-card-3d" id="idCard3D">
+                        <div class="card-html" id="cardHTML">
+                            <!-- Holographic light overlay -->
+                            <div class="card-shine" id="cardShine"></div>
+                            <!-- Ambient glow blobs -->
+                            <div class="card-glow-a"></div>
+                            <div class="card-glow-b"></div>
+                            <div class="card-glow-c"></div>
+                            <!-- Rainbow shimmer bar -->
+                            <div class="card-rainbow-bar"></div>
+                            <!-- Brand row -->
+                            <div class="card-top-row">
+                                <div class="card-brand">
+                                    <img class="card-brand-logo" src="{% static 'questionnaire/img/logo.png' %}" alt="BBrose">
+                                    <div>
+                                        <div class="card-brand-name">BBrose</div>
+                                        <div class="card-brand-sub">Employee Identity</div>
+                                    </div>
+                                </div>
+                                <div class="card-holotag">Official</div>
+                            </div>
+                            <!-- Main body -->
+                            <div class="card-main-body">
+                                <!-- Photo + QR -->
+                                <div class="card-photo-section">
+                                    <div id="cbPhoto" class="cb-photo-placeholder">👤</div>
+                                    <img class="cb-qr-img" id="cbQR" src="" alt="QR" style="display:none;">
+                                    <div class="cb-qr-label" id="cbQrLabel" style="display:none;">Scan Profile</div>
+                                </div>
+                                <!-- Info -->
+                                <div class="card-info-section">
+                                    <div class="cb-name" id="cbName">—</div>
+                                    <div class="cb-role-tag" id="cbRole">Team Member</div>
+                                    <div class="cb-divider"></div>
+                                    <div class="cb-field">
+                                        <div class="cb-field-label">Employee ID</div>
+                                        <div class="cb-field-value" id="cbEmpId">—</div>
+                                    </div>
+                                    <div class="cb-field" id="cbEmailField" style="display:none;">
+                                        <div class="cb-field-label">Email</div>
+                                        <div class="cb-field-value" id="cbEmail">—</div>
+                                    </div>
+                                    <div class="cb-id-badge" id="cbBadge">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M16 3h-8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+                                        <span id="cbBadgeId">BBR-XXXXXXXX</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Footer bar -->
+                            <div class="card-footer-bar">
+                                <span class="card-footer-text">BBrose Internal • Confidential</span>
+                                <span class="card-footer-text" id="cbFooterDate"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="card-actions">
+                <button class="btn-card btn-card-outline" onclick="openEditPanel()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit My Info
+                </button>
+                <button class="btn-card btn-card-primary" id="dlPngBtn" onclick="downloadCardPNG()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download PNG
+                </button>
+                <button class="btn-card btn-card-ghost" onclick="downloadCardPDF()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Download PDF
+                </button>
+            </div>
+
+            <!-- Profile link -->
+            <div style="text-align:center;margin-top:4px;">
+                <a href="#" id="profileLink" target="_blank" style="font-size:0.8rem;color:var(--cyan);text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    View Profile Page
+                </a>
+            </div>
+        </div>
+
+    </div><!-- /.ty-layout -->
+</div>
+
+<!-- ═══════════════════ EDIT SIDE PANEL ═══════════════════ -->
+<div class="edit-panel-backdrop" id="editPanelBackdrop" onclick="closeEditPanel()"></div>
+<div class="edit-panel" id="editPanel">
+    <div class="edit-panel-header">
+        <div>
+            <div class="edit-panel-title">Edit My Info</div>
+            <div class="edit-panel-sub">Changes update your card instantly.</div>
+        </div>
+        <button class="edit-panel-close" onclick="closeEditPanel()">✕</button>
+    </div>
+    <div class="edit-panel-body">
+        <div class="ep-field">
+            <label class="ep-label">Full Name</label>
+            <input type="text" class="ep-input" id="epName" placeholder="Your full name">
+        </div>
+        <div class="ep-field">
+            <label class="ep-label">Role / Title</label>
+            <input type="text" class="ep-input" id="epRole" placeholder="Your role">
+        </div>
+        <div class="ep-field">
+            <label class="ep-label">Profile Photo</label>
+            <div class="ep-photo-row">
+                <div class="ep-photo-placeholder" id="epPhotoWrap">👤</div>
+                <label class="ep-upload-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Choose Photo
+                    <input type="file" id="epPhotoInput" accept="image/*" style="display:none;" onchange="epPreviewPhoto(this)">
+                </label>
+            </div>
+        </div>
+        <div style="padding:14px;background:#f0f9ff;border-radius:12px;border:1px solid #bae6fd;">
+            <p style="font-size:0.8rem;color:#0e7490;line-height:1.6;">
+                <strong>Live preview:</strong> Your name and role update on the card instantly as you type.
+                Save to regenerate the full badge with your photo.
+            </p>
+        </div>
+    </div>
+    <div class="edit-panel-footer">
+        <button class="ep-save-btn" id="epSaveBtn" onclick="epSaveChanges()">
+            <div class="ep-spinner" id="epSpinner"></div>
+            <span id="epSaveBtnText">Save &amp; Regenerate</span>
+        </button>
+        <button class="ep-cancel-btn" onclick="closeEditPanel()">Cancel</button>
+    </div>
+</div>
+
+<!-- ═══════════════════ LOADING ═══════════════════ -->
+<div class="loading-overlay" id="loader">
+    <div class="spinner"></div>
+    <p style="color:var(--gray);font-size:0.95rem;" data-i18n="loading">Generating your ID card...</p>
+</div>
+
+<!-- ═══════════════════ ID TOAST ═══════════════════ -->
+<div class="id-toast" id="idToast"></div>
+
+<!-- ═══════════════════ CAMERA MODAL ═══════════════════ -->
+<div class="camera-modal" id="cameraModal">
+    <video id="cameraVideo" autoplay playsinline></video>
+    <canvas id="cameraCanvas" style="display:none;"></canvas>
+    <div style="display:flex;gap:12px;">
+        <button class="btn btn-primary" onclick="capturePhoto();">📸 <span data-i18n="capture">Capture</span></button>
+        <button class="btn btn-ghost" onclick="closeCamera();" style="color:#fff;border-color:rgba(255,255,255,0.3);">✕ <span data-i18n="cancel">Cancel</span></button>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════ i18n ═══════════════════ */
+const T = {
+en: {
+    start: "Start",
+    prev: "Previous",
+    next: "Next",
+    skip: "Skip",
+    continue_btn: "Continue",
+    modify: "Modify",
+    required_field: "This field is required.",
+    wrong_email: "Wrong email format.",
+    wrong_phone: "Wrong phone number format.",
+    review_title: "Verify Your Personal Information",
+    review_subtitle: "Check your answers below. Continue if everything looks right, or modify any field before moving on.",
+    review_photo_added: "Photo added",
+    review_photo_missing: "No photo added",
+    review_empty: "Not provided",
+    photo_required_hint: "A facial photo is required for the ID card.",
+    id_type: "Document Type",
+    id_number: "ID Number",
+    passport: "Passport",
+    national_id: "ID",
+    phase_transition_title: "Thank You",
+    phase_transition_text: "Now the next phase is work-related questions. We will take you directly to the first group.",
+    trust_title: "Before you submit",
+    trust_text: "Your responses are confidential and used only to improve workflows and build internal AI tools.",
+    trust_agree: "I understand and agree",
+    finish: "Finish",
+    thank_title: "Thank You!",
+    thank_sub: "Your Employee ID Card has been generated.",
+    loading: "Generating your ID card...",
+    download: "Download PNG",
+    capture: "Capture",
+    cancel: "Cancel",
+    upload_photo: "Upload Photo",
+    take_photo: "Take Photo",
+    or_skip: "or skip this step",
+    intro_text: `Hello, I'm Amine Amraoui, the new AI Developer at BBrose.\n\nMy goal is to make work smoother, faster, and more enjoyable by introducing intelligent tools and automation.\n\nTo achieve this, I need your honest input. This questionnaire will help identify challenges and opportunities for improvement.\n\nYour responses are confidential and will only be used internally.\n\nThank you for your time and honesty — it truly makes a difference.`,
+    phases: {
+        personal: "Personal Information",
+        role_resp: "Role & Responsibilities",
+        workflow: "Workflow & Efficiency",
+        pain: "Pain Points",
+        comms: "Communication",
+        tools: "Tools & Technology",
+        ideas: "Ideas & Suggestions",
+    },
+    personal_labels: {
+        full_name: "Full Name",
+        english_name: "English Name",
+        phone: "Phone Number",
+        email: "Email Address",
+        role: "Role",
+        photo: "Facial Photo",
+        id_type: "Document Type",
+        id_number: "ID Number",
+    },
+    questions: [
+        // Phase 1: Personal Info (indices 0-5)
+        { q: "What is your full name?", field: "full_name", type: "text", required: true, phase: "personal" },
+        { q: "What is your English name? (optional)", field: "english_name", type: "text", required: false, phase: "personal" },
+        { q: "What is your phone number?", field: "phone", type: "tel", required: false, phase: "personal" },
+        { q: "What is your email address?", field: "email", type: "email", required: false, phase: "personal" },
+        { q: "What is your role in the company?", field: "role", type: "text", required: false, phase: "personal" },
+        { q: "Please add a facial photo.", field: "photo", type: "photo", required: true, phase: "personal" },
+        { q: "Enter your ID number and choose the document type.", field: "id_number", type: "id_document", required: true, phase: "personal" },
+        { q: "1. Role & Responsibilities", type: "group", phase: "role_resp", group: "role_responsibilities", questions: [
+            { q: "What are your main daily tasks?", field: "rr_daily_tasks", type: "textarea" },
+            { q: "What tools/software do you use daily?", field: "rr_daily_tools", type: "textarea" },
+            { q: "What tasks take most of your time?", field: "rr_time_tasks", type: "textarea" },
+            { q: "What tasks feel repetitive or boring?", field: "rr_repetitive_tasks", type: "textarea" },
+        ]},
+        { q: "2. Workflow & Efficiency", type: "group", phase: "workflow", group: "workflow_efficiency", questions: [
+            { q: "What part of your work takes longer than it should?", field: "we_longer_than_should", type: "textarea" },
+            { q: "Do you often wait on someone else to complete your work?", field: "we_waiting_on_others", type: "textarea" },
+            { q: "What slows you down the most during your day?", field: "we_biggest_slowdown", type: "textarea" },
+        ]},
+        { q: "3. Pain Points / Frustrations", type: "group", phase: "pain", group: "pain_points", questions: [
+            { q: "What frustrates you the most at work?", field: "pp_frustrates_most", type: "textarea" },
+            { q: "What task do you dislike doing the most?", field: "pp_dislike_task", type: "textarea" },
+        ]},
+        { q: "4. Communication & Team Issues", type: "group", phase: "comms", group: "communication", questions: [
+            { q: "How do you usually communicate with your team?", field: "cm_team_communication", type: "textarea" },
+            { q: "Do you feel communication is clear and efficient?", field: "cm_clear_and_efficient", type: "textarea" },
+        ]},
+        { q: "5. Tools & Technology", type: "group", phase: "tools", group: "tools_technology", questions: [
+            { q: "What tools do you currently use?", field: "tt_current_tools", type: "textarea" },
+            { q: "Have you used AI tools before? (ChatGPT, etc.)", field: "tt_ai_tools", type: "textarea" },
+        ]},
+        { q: "6. Ideas & Suggestions", type: "group", phase: "ideas", group: "ideas_suggestions", questions: [
+            { q: "What would you improve in the company?", field: "is_company_improvements", type: "textarea" },
+            { q: "Do you have ideas to make work faster or easier?", field: "is_faster_easier_ideas", type: "textarea" },
+        ]},
+    ]
+},
+zh: {
+    start: "开始",
+    prev: "上一步",
+    next: "下一步",
+    skip: "跳过",
+    continue_btn: "继续",
+    modify: "修改",
+    required_field: "此项为必填。",
+    wrong_email: "邮箱格式不正确。",
+    wrong_phone: "电话号码格式不正确。",
+    review_title: "请确认您的个人信息",
+    review_subtitle: "请检查以下答案。若都正确请继续，如需修改可返回对应字段。",
+    review_photo_added: "已添加照片",
+    review_photo_missing: "未添加照片",
+    review_empty: "未填写",
+    photo_required_hint: "员工证件卡必须上传面部照片。",
+    id_type: "证件类型",
+    id_number: "证件号码",
+    passport: "护照",
+    national_id: "身份证",
+    phase_transition_title: "谢谢您",
+    phase_transition_text: "接下来是与工作相关的问题，我们将直接带您进入第一组问题。",
+    trust_title: "提交前确认",
+    trust_text: "您的回答将保密，仅用于改善工作流程和构建内部AI工具。",
+    trust_agree: "我理解并同意",
+    finish: "完成",
+    thank_title: "谢谢！",
+    thank_sub: "您的员工证件卡已生成。",
+    loading: "正在生成您的证件卡...",
+    download: "下载 PNG",
+    capture: "拍照",
+    cancel: "取消",
+    upload_photo: "上传照片",
+    take_photo: "拍照",
+    or_skip: "或跳过此步",
+    intro_text: `您好，我是 Amine Amraoui，BBrose 的新任 AI 开发者。\n\n我的目标是通过引入智能工具和自动化，让工作更顺畅、更高效、更愉快。\n\n为此，我需要您的真实反馈。这份问卷将帮助识别改进的挑战和机会。\n\n您的回答将保密，仅在内部使用。\n\n感谢您的时间和诚实——这真的很重要。`,
+    phases: {
+        personal: "个人信息", role_resp: "角色与职责", workflow: "工作流程与效率",
+        pain: "痛点", comms: "沟通", tools: "工具与技术", ideas: "想法与建议",
+    },
+    personal_labels: {
+        full_name: "姓名",
+        english_name: "英文名",
+        phone: "电话号码",
+        email: "电子邮箱",
+        role: "职位",
+        photo: "面部照片",
+        id_type: "证件类型",
+        id_number: "证件号码",
+    },
+    questions: [
+        { q: "您的全名是什么？", field: "full_name", type: "text", required: true, phase: "personal" },
+        { q: "您的英文名？（可选）", field: "english_name", type: "text", required: false, phase: "personal" },
+        { q: "您的电话号码？", field: "phone", type: "tel", required: false, phase: "personal" },
+        { q: "您的电子邮箱？", field: "email", type: "email", required: false, phase: "personal" },
+        { q: "您在公司的职位是什么？", field: "role", type: "text", required: false, phase: "personal" },
+        { q: "请上传一张面部照片。", field: "photo", type: "photo", required: true, phase: "personal" },
+        { q: "请输入证件号码并选择证件类型。", field: "id_number", type: "id_document", required: true, phase: "personal" },
+        { q: "1. 角色与职责", type: "group", phase: "role_resp", group: "role_responsibilities", questions: [
+            { q: "您每天的主要任务是什么？", field: "rr_daily_tasks", type: "textarea" },
+            { q: "您每天使用哪些工具或软件？", field: "rr_daily_tools", type: "textarea" },
+            { q: "哪些任务最占用您的时间？", field: "rr_time_tasks", type: "textarea" },
+            { q: "哪些任务让您觉得重复或无聊？", field: "rr_repetitive_tasks", type: "textarea" },
+        ]},
+        { q: "2. 工作流程与效率", type: "group", phase: "workflow", group: "workflow_efficiency", questions: [
+            { q: "您工作中哪一部分花费的时间比应有的更长？", field: "we_longer_than_should", type: "textarea" },
+            { q: "您是否经常需要等待别人完成工作后您才能继续？", field: "we_waiting_on_others", type: "textarea" },
+            { q: "一天中最拖慢您的是什么？", field: "we_biggest_slowdown", type: "textarea" },
+        ]},
+        { q: "3. 痛点 / 挫败感", type: "group", phase: "pain", group: "pain_points", questions: [
+            { q: "工作中最让您沮丧的是什么？", field: "pp_frustrates_most", type: "textarea" },
+            { q: "您最不喜欢做的任务是什么？", field: "pp_dislike_task", type: "textarea" },
+        ]},
+        { q: "4. 沟通与团队问题", type: "group", phase: "comms", group: "communication", questions: [
+            { q: "您通常如何与团队沟通？", field: "cm_team_communication", type: "textarea" },
+            { q: "您觉得沟通清晰且高效吗？", field: "cm_clear_and_efficient", type: "textarea" },
+        ]},
+        { q: "5. 工具与技术", type: "group", phase: "tools", group: "tools_technology", questions: [
+            { q: "您目前使用哪些工具？", field: "tt_current_tools", type: "textarea" },
+            { q: "您以前使用过 AI 工具吗？（如 ChatGPT 等）", field: "tt_ai_tools", type: "textarea" },
+        ]},
+        { q: "6. 想法与建议", type: "group", phase: "ideas", group: "ideas_suggestions", questions: [
+            { q: "您会想改进公司哪些方面？", field: "is_company_improvements", type: "textarea" },
+            { q: "您是否有让工作更快或更轻松的想法？", field: "is_faster_easier_ideas", type: "textarea" },
+        ]},
+    ]
+},
+ar: {
+    start: "ابدأ",
+    prev: "السابق",
+    next: "التالي",
+    skip: "تخطي",
+    continue_btn: "متابعة",
+    modify: "تعديل",
+    required_field: "هذا الحقل مطلوب.",
+    wrong_email: "صيغة البريد الإلكتروني غير صحيحة.",
+    wrong_phone: "صيغة رقم الهاتف غير صحيحة.",
+    review_title: "تحقق من معلوماتك الشخصية",
+    review_subtitle: "راجع إجاباتك أدناه. تابع إذا كان كل شيء صحيحاً، أو عدّل أي حقل قبل المتابعة.",
+    review_photo_added: "تمت إضافة صورة",
+    review_photo_missing: "لم تتم إضافة صورة",
+    review_empty: "غير متوفر",
+    photo_required_hint: "الصورة الشخصية مطلوبة لإصدار البطاقة.",
+    id_type: "نوع الوثيقة",
+    id_number: "رقم الوثيقة",
+    passport: "جواز سفر",
+    national_id: "بطاقة هوية",
+    phase_transition_title: "شكراً لك",
+    phase_transition_text: "الآن تبدأ المرحلة التالية الخاصة بأسئلة العمل، وسننقلك مباشرة إلى المجموعة الأولى.",
+    trust_title: "قبل الإرسال",
+    trust_text: "إجاباتك سرية وتُستخدم فقط لتحسين سير العمل وبناء أدوات الذكاء الاصطناعي الداخلية.",
+    trust_agree: "أفهم وأوافق",
+    finish: "إنهاء",
+    thank_title: "!شكراً لك",
+    thank_sub: "تم إنشاء بطاقة هوية الموظف الخاصة بك.",
+    loading: "...جارٍ إنشاء بطاقة هويتك",
+    download: "PNG تحميل",
+    capture: "التقاط",
+    cancel: "إلغاء",
+    upload_photo: "رفع صورة",
+    take_photo: "التقاط صورة",
+    or_skip: "أو تخطي هذه الخطوة",
+    intro_text: `مرحباً، أنا أمين عمراوي، مطور الذكاء الاصطناعي الجديد في BBrose.\n\nهدفي هو جعل العمل أكثر سلاسة وسرعة ومتعة من خلال تقديم أدوات ذكية والأتمتة.\n\nلتحقيق ذلك، أحتاج إلى ملاحظاتك الصادقة. سيساعد هذا الاستبيان في تحديد التحديات وفرص التحسين.\n\nإجاباتك سرية ولن تُستخدم إلا داخلياً.\n\nشكراً لوقتك وصدقك — هذا يصنع فرقاً حقيقياً.`,
+    phases: {
+        personal: "المعلومات الشخصية", role_resp: "الدور والمسؤوليات", workflow: "سير العمل والكفاءة",
+        pain: "نقاط الألم", comms: "التواصل", tools: "الأدوات والتكنولوجيا", ideas: "الأفكار والاقتراحات",
+    },
+    personal_labels: {
+        full_name: "الاسم الكامل",
+        english_name: "الاسم بالإنجليزية",
+        phone: "رقم الهاتف",
+        email: "البريد الإلكتروني",
+        role: "الدور",
+        photo: "الصورة الشخصية",
+        id_type: "نوع الوثيقة",
+        id_number: "رقم الوثيقة",
+    },
+    questions: [
+        { q: "ما هو اسمك الكامل؟", field: "full_name", type: "text", required: true, phase: "personal" },
+        { q: "ما هو اسمك بالإنجليزية؟ (اختياري)", field: "english_name", type: "text", required: false, phase: "personal" },
+        { q: "ما هو رقم هاتفك؟", field: "phone", type: "tel", required: false, phase: "personal" },
+        { q: "ما هو بريدك الإلكتروني؟", field: "email", type: "email", required: false, phase: "personal" },
+        { q: "ما هو دورك في الشركة؟", field: "role", type: "text", required: false, phase: "personal" },
+        { q: "يرجى إضافة صورة شخصية للوجه.", field: "photo", type: "photo", required: true, phase: "personal" },
+        { q: "أدخل رقم الوثيقة واختر نوعها.", field: "id_number", type: "id_document", required: true, phase: "personal" },
+        { q: "1. الدور والمسؤوليات", type: "group", phase: "role_resp", group: "role_responsibilities", questions: [
+            { q: "ما هي مهامك اليومية الرئيسية؟", field: "rr_daily_tasks", type: "textarea" },
+            { q: "ما الأدوات أو البرامج التي تستخدمها يومياً؟", field: "rr_daily_tools", type: "textarea" },
+            { q: "ما المهام التي تستهلك معظم وقتك؟", field: "rr_time_tasks", type: "textarea" },
+            { q: "ما المهام التي تشعر بأنها متكررة أو مملة؟", field: "rr_repetitive_tasks", type: "textarea" },
+        ]},
+        { q: "2. سير العمل والكفاءة", type: "group", phase: "workflow", group: "workflow_efficiency", questions: [
+            { q: "أي جزء من عملك يستغرق وقتاً أطول مما ينبغي؟", field: "we_longer_than_should", type: "textarea" },
+            { q: "هل تنتظر كثيراً شخصاً آخر حتى تتمكن من إكمال عملك؟", field: "we_waiting_on_others", type: "textarea" },
+            { q: "ما الذي يبطئك أكثر خلال يومك؟", field: "we_biggest_slowdown", type: "textarea" },
+        ]},
+        { q: "3. نقاط الألم / الإحباط", type: "group", phase: "pain", group: "pain_points", questions: [
+            { q: "ما أكثر شيء يسبب لك الإحباط في العمل؟", field: "pp_frustrates_most", type: "textarea" },
+            { q: "ما المهمة التي لا تحب القيام بها أكثر من غيرها؟", field: "pp_dislike_task", type: "textarea" },
+        ]},
+        { q: "4. التواصل ومشكلات الفريق", type: "group", phase: "comms", group: "communication", questions: [
+            { q: "كيف تتواصل عادةً مع فريقك؟", field: "cm_team_communication", type: "textarea" },
+            { q: "هل تشعر أن التواصل واضح وفعّال؟", field: "cm_clear_and_efficient", type: "textarea" },
+        ]},
+        { q: "5. الأدوات والتكنولوجيا", type: "group", phase: "tools", group: "tools_technology", questions: [
+            { q: "ما الأدوات التي تستخدمها حالياً؟", field: "tt_current_tools", type: "textarea" },
+            { q: "هل استخدمت أدوات الذكاء الاصطناعي من قبل؟ (مثل ChatGPT وغيرها)", field: "tt_ai_tools", type: "textarea" },
+        ]},
+        { q: "6. الأفكار والاقتراحات", type: "group", phase: "ideas", group: "ideas_suggestions", questions: [
+            { q: "ما الذي تود تحسينه في الشركة؟", field: "is_company_improvements", type: "textarea" },
+            { q: "هل لديك أفكار تجعل العمل أسرع أو أسهل؟", field: "is_faster_easier_ideas", type: "textarea" },
+        ]},
+    ]
+}
+};
+
+let lang = 'en';
+let currentQ = 0;
+let answers = {};
+let photoFile = null;
+let cameraStream = null;
+const SKIPPABLE_FIELDS = new Set(['english_name']);
+const PERSONAL_REVIEW_FIELDS = ['full_name', 'english_name', 'phone', 'email', 'role', 'photo', 'id_type', 'id_number'];
+const PERSONAL_REVIEW_LAST_INDEX = 6;
+const PERSONAL_REVIEW_NEXT_INDEX = 7;
+let phaseTransitionTimer = null;
+
+/* ═══════════════════ NAVIGATION ═══════════════════ */
+function goTo(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+/* ═══════════════════ LANGUAGE ═══════════════════ */
+function setLanguage(l) {
+    lang = l;
+    if (l === 'ar') {
+        document.documentElement.setAttribute('dir', 'rtl');
+        document.documentElement.setAttribute('lang', 'ar');
+    } else {
+        document.documentElement.setAttribute('dir', 'ltr');
+        document.documentElement.setAttribute('lang', l === 'zh' ? 'zh' : 'en');
+    }
+    translateAll();
+    goTo('intro');
+    startTyping();
+}
+
+function translateAll() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (T[lang][key]) el.textContent = T[lang][key];
+    });
+}
+
+/* ═══════════════════ TYPING ═══════════════════ */
+function startTyping() {
+    const el = document.getElementById('introText');
+    const text = T[lang].intro_text;
+    el.innerHTML = '<span class="typing-cursor"></span>';
+    let i = 0;
+    const speed = 18;
+    function type() {
+        if (i < text.length) {
+            const char = text.charAt(i);
+            if (char === '\n') {
+                el.innerHTML = el.innerHTML.replace('<span class="typing-cursor"></span>', '') + '<br><span class="typing-cursor"></span>';
+            } else {
+                el.innerHTML = el.innerHTML.replace('<span class="typing-cursor"></span>', '') + char + '<span class="typing-cursor"></span>';
+            }
+            i++;
+            setTimeout(type, speed);
+        } else {
+            document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('startBtn').style.animation = 'fadeUp 0.5s ease forwards';
+        }
+    }
+    type();
+}
+
+/* ═══════════════════ QUESTIONNAIRE ═══════════════════ */
+function initQuestionnaire() {
+    currentQ = 0;
+    renderQuestion();
+}
+
+function getQuestions() {
+    return T[lang].questions;
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPhone(value) {
+    return /^\+?[0-9\s\-()]{7,20}$/.test(value);
+}
+
+function setInputError(message) {
+    const errorEl = document.getElementById('qError');
+    const inp = document.getElementById('qInput');
+    if (errorEl) errorEl.textContent = message;
+    if (inp) {
+        inp.classList.add('error');
+        inp.style.animation = 'none';
+        inp.offsetHeight;
+        inp.style.animation = 'slideIn 0.3s ease';
+    }
+}
+
+function clearInputError() {
+    const errorEl = document.getElementById('qError');
+    const inp = document.getElementById('qInput');
+    if (errorEl) errorEl.textContent = '';
+    if (inp) inp.classList.remove('error');
+}
+
+function validateQuestion(q) {
+    const value = (answers[q.field] || '').trim();
+    if (q.required && q.type === 'photo' && !photoFile) {
+        return T[lang].photo_required_hint;
+    }
+    if (q.required && q.type !== 'photo' && !value) {
+        return T[lang].required_field;
+    }
+    if (!value) return null;
+    if (q.field === 'email' && !isValidEmail(value)) return T[lang].wrong_email;
+    if (q.field === 'phone' && !isValidPhone(value)) return T[lang].wrong_phone;
+    return null;
+}
+
+function getReviewValue(field) {
+    if (field === 'photo') return photoFile ? T[lang].review_photo_added : T[lang].review_photo_missing;
+    if (field === 'id_type') return (answers.id_type || 'id') === 'passport' ? T[lang].passport : T[lang].national_id;
+    const value = (answers[field] || '').trim();
+    return value || T[lang].review_empty;
+}
+
+function goToPersonalReview() {
+    saveCurrentAnswer();
+    const total = getQuestions().length;
+    const pct = ((PERSONAL_REVIEW_LAST_INDEX + 1) / total) * 100;
+    document.getElementById('personalReviewProgress').style.width = pct + '%';
+    document.getElementById('personalReviewLabel').textContent = `${PERSONAL_REVIEW_LAST_INDEX + 1} / ${total}`;
+
+    const labels = T[lang].personal_labels;
+    const photoPreview = photoFile ? URL.createObjectURL(photoFile) : '';
+    const heroAvatar = photoPreview
+        ? `<div class="review-avatar"><img src="${photoPreview}" alt="Preview"></div>`
+        : `<div class="review-avatar">${(answers.full_name || '?').trim().charAt(0).toUpperCase() || '?'}</div>`;
+    const rows = PERSONAL_REVIEW_FIELDS.map(field => {
+        const extra = field === 'photo' && photoPreview
+            ? `<div class="review-photo"><img src="${photoPreview}" alt="Preview"></div>`
+            : '';
+        return `
+        <div class="review-item">
+            <div class="review-item-main">
+                <span class="review-label">${labels[field]}</span>
+                <div class="review-value">${getReviewValue(field)}</div>
+            </div>
+            ${extra}
+            <div class="review-item-actions">
+                <button class="btn btn-outline" onclick="editPersonalField('${field}');">${T[lang].modify}</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('personalReviewCard').innerHTML = `
+        <div class="phase-badge">${T[lang].phases.personal}</div>
+        <div class="review-hero">
+            ${heroAvatar}
+            <div class="review-hero-meta">
+                <h2 class="review-title">${T[lang].review_title}</h2>
+                <p class="review-subtitle">${T[lang].review_subtitle}</p>
+            </div>
+        </div>
+        <div class="review-grid">${rows}</div>
+        <div class="review-actions">
+            <button class="btn btn-primary" onclick="continueAfterPersonalReview();">${T[lang].continue_btn}</button>
+        </div>`;
+
+    goTo('personalReview');
+}
+
+function editPersonalField(field) {
+    const lookupField = field === 'id_type' ? 'id_number' : field;
+    const targetIndex = getQuestions().findIndex(q => q.field === lookupField);
+    if (targetIndex === -1) return;
+    currentQ = targetIndex;
+    goTo('questionnaire');
+    renderQuestion();
+}
+
+function continueAfterPersonalReview() {
+    if (phaseTransitionTimer) clearTimeout(phaseTransitionTimer);
+    currentQ = PERSONAL_REVIEW_NEXT_INDEX;
+    document.getElementById('phaseTransitionCard').innerHTML = `
+        <div class="transition-icon">✓</div>
+        <h2 class="transition-title">${T[lang].phase_transition_title}</h2>
+        <p class="transition-text">${T[lang].phase_transition_text}</p>
+        <div class="transition-phase">${T[lang].phases.role_resp}</div>`;
+    goTo('phaseTransition');
+    phaseTransitionTimer = setTimeout(() => {
+        goTo('questionnaire');
+        renderQuestion();
+    }, 2300);
+}
+
+function renderQuestion() {
+    const questions = getQuestions();
+    const q = questions[currentQ];
+    const total = questions.length;
+    const pct = ((currentQ + 1) / total) * 100;
+    const canSkip = SKIPPABLE_FIELDS.has(q.field);
+
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${currentQ + 1} / ${total}`;
+
+    const phaseName = T[lang].phases[q.phase] || q.phase;
+    let html = `<div class="phase-badge">${phaseName}</div>`;
+    html += `<h2 class="q-title">${q.q}</h2>`;
+
+    if (q.type === 'photo') {
+        html += renderPhotoUpload();
+    } else if (q.type === 'id_document') {
+        html += renderIdDocumentInput();
+    } else if (q.type === 'group') {
+        html += `<div class="group-fields">`;
+        q.questions.forEach(item => {
+            html += `
+                <div class="group-field">
+                    <label class="group-label" for="qInput_${item.field}">${item.q}</label>
+                    <textarea class="q-input" id="qInput_${item.field}" placeholder="..." rows="4">${answers[item.field] || ''}</textarea>
+                </div>`;
+        });
+        html += `</div>`;
+    } else if (q.type === 'textarea') {
+        html += `<textarea class="q-input" id="qInput" placeholder="..." rows="4">${answers[q.field] || ''}</textarea>`;
+    } else {
+        html += `<input class="q-input" id="qInput" type="${q.type}" value="${answers[q.field] || ''}" placeholder="...">`;
+    }
+    html += `<div class="q-error" id="qError"></div>`;
+
+    html += `<div class="q-nav">`;
+    if (currentQ > 0) {
+        html += `<button class="btn btn-ghost" onclick="prevQ();">${T[lang].prev}</button>`;
+    }
+    if (canSkip) {
+        html += `<button class="btn btn-outline" onclick="skipQ();">${T[lang].skip}</button>`;
+    }
+    if (currentQ < total - 1) {
+        html += `<button class="btn btn-primary" onclick="nextQ();">${T[lang].next}</button>`;
+    } else {
+        html += `<button class="btn btn-primary" onclick="nextQ();">${T[lang].finish}</button>`;
+    }
+    html += `</div>`;
+
+    const card = document.getElementById('qCard');
+    card.style.animation = 'none';
+    card.offsetHeight; // reflow
+    card.style.animation = 'slideIn 0.4s ease';
+    card.innerHTML = html;
+
+    // Auto-focus input
+    const inputs = q.type === 'group'
+        ? Array.from(card.querySelectorAll('textarea, input'))
+        : q.type === 'id_document'
+            ? Array.from(card.querySelectorAll('input'))
+            : [document.getElementById('qInput')].filter(Boolean);
+    inputs.forEach(inp => inp.addEventListener('input', clearInputError));
+    if (inputs[0]) setTimeout(() => inputs[0].focus(), 100);
+}
+
+function renderPhotoUpload() {
+    const previewSrc = photoFile ? URL.createObjectURL(photoFile) : '';
+    return `
+    <div class="photo-upload-area">
+        <div class="photo-preview" onclick="document.getElementById('photoInput').click();">
+            ${previewSrc
+                ? `<img src="${previewSrc}" alt="Preview">`
+                : `<span class="placeholder">Tap to upload</span>`
+            }
+        </div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(this);">
+        <div class="photo-actions">
+            <button class="btn btn-outline" onclick="document.getElementById('photoInput').click();">
+                📁 ${T[lang].upload_photo}
+            </button>
+            <button class="btn btn-outline" onclick="openCamera();">
+                📷 ${T[lang].take_photo}
+            </button>
+        </div>
+        <p style="color:var(--gray);font-size:0.85rem;">${T[lang].photo_required_hint}</p>
+    </div>`;
+}
+
+function renderIdDocumentInput() {
+    const idType = answers.id_type || 'id';
+    return `
+    <div>
+        <div class="doc-type-switch">
+            <button type="button" class="doc-type-btn ${idType === 'id' ? 'active' : ''}" onclick="setIdType('id');">${T[lang].national_id}</button>
+            <button type="button" class="doc-type-btn ${idType === 'passport' ? 'active' : ''}" onclick="setIdType('passport');">${T[lang].passport}</button>
+        </div>
+        <input class="q-input" id="qInput" type="text" value="${answers.id_number || ''}" placeholder="${T[lang].id_number}">
+    </div>`;
+}
+
+function setIdType(type) {
+    answers.id_type = type;
+    renderQuestion();
+}
+
+function handlePhotoUpload(input) {
+    if (input.files && input.files[0]) {
+        photoFile = input.files[0];
+        renderQuestion();
+    }
+}
+
+function openCamera() {
+    const modal = document.getElementById('cameraModal');
+    const video = document.getElementById('cameraVideo');
+    modal.classList.add('open');
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .then(stream => { cameraStream = stream; video.srcObject = stream; })
+        .catch(() => { alert('Camera not available'); closeCamera(); });
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+        photoFile = new File([blob], 'camera_photo.jpg', { type: 'image/jpeg' });
+        closeCamera();
+        renderQuestion();
+    }, 'image/jpeg', 0.85);
+}
+
+function closeCamera() {
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    document.getElementById('cameraModal').classList.remove('open');
+}
+
+function saveCurrentAnswer() {
+    const q = getQuestions()[currentQ];
+    if (q.type === 'photo') return;
+    if (q.type === 'id_document') {
+        const inp = document.getElementById('qInput');
+        if (inp) answers.id_number = inp.value;
+        if (!answers.id_type) answers.id_type = 'id';
+        return;
+    }
+    if (q.type === 'group') {
+        q.questions.forEach(item => {
+            const inp = document.getElementById(`qInput_${item.field}`);
+            if (inp) answers[item.field] = inp.value;
+        });
+        return;
+    }
+    const inp = document.getElementById('qInput');
+    if (inp) answers[q.field] = inp.value;
+}
+
+function nextQ() {
+    saveCurrentAnswer();
+    const questions = getQuestions();
+    const q = questions[currentQ];
+
+    // Validate required
+    if (q.required && q.type !== 'photo') {
+        const val = answers[q.field] || '';
+        if (!val.trim()) {
+            setInputError('');
+            return;
+        }
+    }
+
+    const validationError = validateQuestion(q);
+    if (validationError) {
+        setInputError(validationError);
+        return;
+    }
+
+    if (currentQ === PERSONAL_REVIEW_LAST_INDEX) {
+        goToPersonalReview();
+        return;
+    }
+
+    if (currentQ < questions.length - 1) {
+        currentQ++;
+        renderQuestion();
+    } else {
+        goTo('trust');
+    }
+}
+
+function prevQ() {
+    saveCurrentAnswer();
+    if (currentQ === PERSONAL_REVIEW_NEXT_INDEX) {
+        goToPersonalReview();
+        return;
+    }
+    if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+function skipQ() {
+    if (currentQ === PERSONAL_REVIEW_LAST_INDEX) {
+        goToPersonalReview();
+        return;
+    }
+    if (currentQ < getQuestions().length - 1) { currentQ++; renderQuestion(); }
+    else goTo('trust');
+}
+
+/* ═══════════════════ SUBMIT ═══════════════════ */
+function submitAll() {
+    const loader = document.getElementById('loader');
+    loader.classList.add('active');
+
+    const questions = getQuestions();
+    const data = {
+        language: lang,
+        full_name: answers.full_name || '',
+        english_name: answers.english_name || '',
+        phone: answers.phone || '',
+        email: answers.email || '',
+        role: answers.role || '',
+        id_type: answers.id_type || 'id',
+        id_number: answers.id_number || '',
+        consent: true,
+        role_responsibilities: {},
+        workflow_efficiency: {},
+        pain_points: {},
+        communication: {},
+        tools_technology: {},
+        ideas_suggestions: {},
+    };
+
+    // Collect work answers into groups
+    questions.forEach(q => {
+        if (q.type === 'group') {
+            q.questions.forEach(item => {
+                if (answers[item.field]) data[q.group][item.q] = answers[item.field];
+            });
+            return;
+        }
+        if (q.group && answers[q.field]) {
+            data[q.group][q.q] = answers[q.field];
+        }
+    });
+
+    const formData = new FormData();
+    formData.append('data', JSON.stringify(data));
+    if (photoFile) formData.append('photo', photoFile);
+
+    fetch('/api/submit/', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            loader.classList.remove('active');
+            if (res.success) showThankYou(res);
+            else alert('Error submitting. Please try again.');
+        })
+        .catch(() => {
+            loader.classList.remove('active');
+            alert('Network error. Please try again.');
+        });
+}
+
+/* ──────────────────────────────────────────
+   ID CARD STATE
+────────────────────────────────────────── */
+let _cardState = {
+    employeeId: '',
+    idCardUrl: '',
+    qrCodeUrl: '',
+    photoUrl: null,
+    profileUrl: '',
+    fullName: '',
+    role: '',
+};
+
+function showThankYou(res) {
+    goTo('thankyou');
+
+    _cardState = {
+        employeeId: res.employee_id,
+        idCardUrl:  res.id_card_url,
+        qrCodeUrl:  res.qr_code_url,
+        photoUrl:   res.photo_url || null,
+        profileUrl: res.profile_url || `/profile/${res.employee_id}/`,
+        fullName:   res.full_name,
+        role:       res.role || 'Team Member',
+    };
+
+    _renderCard(_cardState);
+    _initCardTilt();
+}
+
+function _renderCard(s) {
+    // Main card fields
+    document.getElementById('cbName').textContent  = s.fullName || '—';
+    document.getElementById('cbRole').textContent  = s.role || 'Team Member';
+    document.getElementById('cbEmpId').textContent = s.employeeId;
+    document.getElementById('cbBadgeId').textContent = s.employeeId;
+
+    // Side badge mini-card
+    document.getElementById('badgeName').textContent = (s.fullName || '—').split(' ').slice(0,2).join(' ');
+    document.getElementById('badgeRole').textContent = s.role || 'Employee';
+    document.getElementById('badgeId').textContent   = s.employeeId;
+
+    // Photo
+    const photoWrap = document.getElementById('cbPhoto');
+    if (s.photoUrl) {
+        photoWrap.outerHTML = `<img class="cb-photo" id="cbPhoto" src="${s.photoUrl}" alt="Photo" style="display:block;">`;
+    }
+
+    // QR code
+    const qrEl = document.getElementById('cbQR');
+    const qrLabel = document.getElementById('cbQrLabel');
+    if (s.qrCodeUrl) {
+        qrEl.src = s.qrCodeUrl;
+        qrEl.style.display = 'block';
+        qrLabel.style.display = 'block';
+    }
+
+    // Footer date
+    const d = new Date();
+    document.getElementById('cbFooterDate').textContent =
+        d.toLocaleDateString('en-GB', { year:'numeric', month:'short', day:'numeric' });
+
+    // Profile link
+    const pLink = document.getElementById('profileLink');
+    if (pLink) pLink.href = s.profileUrl;
+
+    // Edit panel pre-fill
+    document.getElementById('epName').value = s.fullName;
+    document.getElementById('epRole').value = s.role;
+
+    // Photo preview in edit panel
+    const epPhotoWrap = document.getElementById('epPhotoWrap');
+    if (s.photoUrl) {
+        epPhotoWrap.outerHTML = `<img src="${s.photoUrl}" class="ep-photo-preview" id="epPhotoWrap" alt="Photo">`;
+    }
+}
+
+/* ──────────────────────────────────────────
+   3D TILT EFFECT
+────────────────────────────────────────── */
+function _initCardTilt() {
+    const scene  = document.getElementById('cardScene');
+    const card3D = document.getElementById('idCard3D');
+    const shine  = document.getElementById('cardShine');
+    if (!scene || !card3D) return;
+
+    let animFrame = null;
+    let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function animate() {
+        currentX = lerp(currentX, targetX, 0.1);
+        currentY = lerp(currentY, targetY, 0.1);
+        card3D.style.transform = `perspective(900px) rotateX(${currentX}deg) rotateY(${currentY}deg)`;
+
+        const shineX = 50 + currentY * 2;
+        const shineY = 50 - currentX * 2;
+        shine.style.background = `
+            radial-gradient(circle at ${shineX}% ${shineY}%,
+                rgba(255,255,255,0.32) 0%,
+                rgba(255,255,255,0.08) 40%,
+                transparent 70%),
+            linear-gradient(135deg,
+                rgba(255,255,255,0.04) 0%,
+                transparent 100%)`;
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    scene.addEventListener('mousemove', e => {
+        const rect = scene.getBoundingClientRect();
+        const x = (e.clientX - rect.left - rect.width  / 2) / (rect.width  / 2);
+        const y = (e.clientY - rect.top  - rect.height / 2) / (rect.height / 2);
+        targetY =  x * 14;
+        targetX = -y * 10;
+        if (!animFrame) animFrame = requestAnimationFrame(animate);
+    });
+
+    scene.addEventListener('mouseleave', () => {
+        targetX = 0; targetY = 0;
+        setTimeout(() => {
+            cancelAnimationFrame(animFrame);
+            animFrame = null;
+            currentX = 0; currentY = 0;
+            card3D.style.transform = '';
+            shine.style.background = '';
+        }, 800);
+    });
+
+    // Touch support
+    scene.addEventListener('touchmove', e => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = scene.getBoundingClientRect();
+        const x = (touch.clientX - rect.left - rect.width  / 2) / (rect.width  / 2);
+        const y = (touch.clientY - rect.top  - rect.height / 2) / (rect.height / 2);
+        targetY =  x * 10;
+        targetX = -y * 7;
+        if (!animFrame) animFrame = requestAnimationFrame(animate);
+    }, { passive: false });
+
+    scene.addEventListener('touchend', () => {
+        targetX = 0; targetY = 0;
+    });
+}
+
+/* ──────────────────────────────────────────
+   EDIT PANEL
+────────────────────────────────────────── */
+function openEditPanel() {
+    document.getElementById('editPanel').classList.add('open');
+    document.getElementById('editPanelBackdrop').classList.add('open');
+    document.getElementById('epName').focus();
+}
+function closeEditPanel() {
+    document.getElementById('editPanel').classList.remove('open');
+    document.getElementById('editPanelBackdrop').classList.remove('open');
+}
+
+function epPreviewPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const wrap = document.getElementById('epPhotoWrap');
+        wrap.outerHTML = `<img src="${e.target.result}" class="ep-photo-preview" id="epPhotoWrap" alt="Photo">`;
+        // Live preview on card
+        const cbPhoto = document.getElementById('cbPhoto');
+        if (cbPhoto) {
+            if (cbPhoto.tagName === 'IMG') cbPhoto.src = e.target.result;
+            else cbPhoto.outerHTML = `<img class="cb-photo" id="cbPhoto" src="${e.target.result}" alt="Photo" style="display:block;">`;
+        }
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+// Live card preview as user types
+document.addEventListener('DOMContentLoaded', () => {
+    const epName = document.getElementById('epName');
+    const epRole = document.getElementById('epRole');
+    if (epName) {
+        epName.addEventListener('input', () => {
+            const v = epName.value || '—';
+            const nameEl = document.getElementById('cbName');
+            if (nameEl) nameEl.textContent = v;
+            const bn = document.getElementById('badgeName');
+            if (bn) bn.textContent = v.split(' ').slice(0,2).join(' ');
+        });
+    }
+    if (epRole) {
+        epRole.addEventListener('input', () => {
+            const v = epRole.value || 'Team Member';
+            const roleEl = document.getElementById('cbRole');
+            if (roleEl) roleEl.textContent = v;
+            const br = document.getElementById('badgeRole');
+            if (br) br.textContent = v;
+        });
+    }
+});
+
+async function epSaveChanges() {
+    const btn     = document.getElementById('epSaveBtn');
+    const spinner = document.getElementById('epSpinner');
+    const btnText = document.getElementById('epSaveBtnText');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent   = 'Saving…';
+
+    const name      = document.getElementById('epName').value.trim();
+    const role      = document.getElementById('epRole').value.trim();
+    const photoFile = document.getElementById('epPhotoInput').files[0];
+
+    const formData = new FormData();
+    formData.append('data', JSON.stringify({ full_name: name, role: role }));
+    if (photoFile) formData.append('photo', photoFile);
+
+    try {
+        const res  = await fetch(`/api/update/${_cardState.employeeId}/`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            _cardState.fullName  = data.full_name;
+            _cardState.role      = data.role;
+            _cardState.idCardUrl = data.id_card_url;
+            _cardState.qrCodeUrl = data.qr_code_url;
+            if (data.photo_url) _cardState.photoUrl = data.photo_url;
+
+            // Update QR code image on card
+            const qrEl = document.getElementById('cbQR');
+            if (qrEl && data.qr_code_url) qrEl.src = data.qr_code_url + '?t=' + Date.now();
+
+            closeEditPanel();
+            _showIdToast('Badge updated successfully!', 'success');
+        } else {
+            _showIdToast('Update failed. Try again.', 'error');
+        }
+    } catch {
+        _showIdToast('Network error.', 'error');
+    } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent   = 'Save & Regenerate';
+    }
+}
+
+/* ──────────────────────────────────────────
+   DOWNLOAD
+────────────────────────────────────────── */
+function downloadCardPNG() {
+    if (!_cardState.idCardUrl) return;
+    const a = document.createElement('a');
+    a.href     = _cardState.idCardUrl;
+    a.download = `BBrose_IDCard_${_cardState.employeeId}.png`;
+    a.click();
+}
+
+function downloadCardPDF() {
+    if (!_cardState.idCardUrl) return;
+    const btn = document.querySelector('[onclick="downloadCardPDF()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Preparing…'; }
+
+    function doDownload() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 148] });
+        const canvas  = document.createElement('canvas');
+        const ctx     = canvas.getContext('2d');
+        const image   = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => {
+            canvas.width  = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            ctx.drawImage(image, 0, 0);
+            const imgData = canvas.toDataURL('image/png');
+            const pdfW = pdf.internal.pageSize.getWidth();
+            const pdfH = pdf.internal.pageSize.getHeight();
+            const ratio = Math.min(pdfW / image.naturalWidth, pdfH / image.naturalHeight);
+            const w = image.naturalWidth  * ratio;
+            const h = image.naturalHeight * ratio;
+            pdf.addImage(imgData, 'PNG', (pdfW - w) / 2, (pdfH - h) / 2, w, h);
+            pdf.save(`BBrose_IDCard_${_cardState.employeeId}.pdf`);
+            if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Download PDF`; }
+        };
+        image.onerror = () => { _showIdToast('Download failed.', 'error'); if (btn) { btn.disabled = false; } };
+        image.src = _cardState.idCardUrl + '?t=' + Date.now();
+    }
+
+    if (window.jspdf) {
+        doDownload();
+    } else {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = doDownload;
+        document.head.appendChild(script);
+    }
+}
+
+/* ──────────────────────────────────────────
+   TOAST
+────────────────────────────────────────── */
+function _showIdToast(msg, type = 'success') {
+    const t = document.getElementById('idToast');
+    t.textContent = msg;
+    t.className   = `id-toast ${type}`;
+    void t.offsetWidth;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ═══════════════════ KEYBOARD NAV ═══════════════════ */
+document.addEventListener('keydown', e => {
+    if (document.getElementById('questionnaire').classList.contains('active')) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') nextQ();
+    }
+    if (e.key === 'Escape') closeEditPanel();
+});
+</script>
+
+<!-- ═══════════════════ LANDING ANIMATION ═══════════════════ -->
+<script>
+(function() {
+    /* ── Sparkle Canvas ── */
+    const canvas = document.getElementById('sparkleCanvas');
+    const ctx    = canvas.getContext('2d');
+    let rafId    = null;
+
+    function resizeCanvas() {
+        canvas.width  = canvas.parentElement.offsetWidth  || window.innerWidth;
+        canvas.height = canvas.parentElement.offsetHeight || window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+
+    const COLORS = ['14,116,144', '190,24,93', '124,58,237', '217,119,6'];
+    const particles = Array.from({ length: 60 }, () => ({
+        x:          rand(0, window.innerWidth),
+        y:          rand(0, window.innerHeight),
+        r:          rand(1, 3.8),
+        baseOp:     rand(0.15, 0.65),
+        opacity:    0,
+        speed:      rand(0.18, 0.65),
+        dx:         rand(-0.25, 0.25),
+        phase:      rand(0, Math.PI * 2),
+        phaseSpeed: rand(0.008, 0.035),
+        color:      COLORS[Math.floor(Math.random() * COLORS.length)],
+        star:       Math.random() > 0.55,
+    }));
+
+    function drawStar(ctx, x, y, outer, inner) {
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const a   = (i * Math.PI) / 4;
+            const rad = i % 2 === 0 ? outer : inner;
+            i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad)
+                    : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const W = canvas.width, H = canvas.height;
+
+        particles.forEach(p => {
+            p.phase  += p.phaseSpeed;
+            p.opacity = p.baseOp * (0.4 + 0.6 * Math.abs(Math.sin(p.phase)));
+            p.y      -= p.speed;
+            p.x      += p.dx;
+            if (p.y < -8)    { p.y = H + 8;  p.x = rand(0, W); }
+            if (p.x < -8)    p.x = W + 8;
+            if (p.x > W + 8) p.x = -8;
+
+            ctx.save();
+            ctx.globalAlpha = p.opacity;
+            ctx.fillStyle   = `rgba(${p.color},1)`;
+            if (p.star && p.r > 2) {
+                ctx.translate(p.x, p.y);
+                drawStar(ctx, 0, 0, p.r * 1.6, p.r * 0.55);
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        });
+        rafId = requestAnimationFrame(animateParticles);
+    }
+
+    /* Watch landing visibility */
+    const landingEl = document.getElementById('landing');
+    new MutationObserver(() => {
+        if (landingEl.classList.contains('active')) {
+            if (!rafId) animateParticles();
+        } else {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    }).observe(landingEl, { attributes: true, attributeFilter: ['class'] });
+
+    animateParticles(); /* start immediately — landing is active on load */
+
+    /* ── Rotating typed tagline ── */
+    const taglineEl  = document.getElementById('landingTagline');
+    const logoEl     = document.getElementById('logoContainer');
+    const lineEl     = document.getElementById('landingLine');
+    const subEl      = document.getElementById('landingSub');
+    const ctaEl      = document.getElementById('ctaWrap');
+    const TAGLINES = [
+        { text: 'A New Digital Generation', lang: 'en', dir: 'ltr' },
+        { text: 'جيل رقمي جديد', lang: 'ar', dir: 'rtl' },
+        { text: '新一代数字化力量', lang: 'zh', dir: 'ltr' }
+    ];
+
+    const TYPE_SPEED = 90;
+    const DELETE_SPEED = 48;
+    const HOLD_DELAY = 1400;
+    const SWITCH_DELAY = 260;
+
+    function runTaglineCycle(index = 0) {
+        const current = TAGLINES[index];
+        const chars = [...current.text];
+        let cursor = 0;
+
+        taglineEl.lang = current.lang;
+        taglineEl.dir = current.dir;
+        taglineEl.textContent = '';
+
+        function typeNext() {
+            if (cursor < chars.length) {
+                cursor += 1;
+                taglineEl.textContent = chars.slice(0, cursor).join('');
+                setTimeout(typeNext, TYPE_SPEED);
+                return;
+            }
+
+            setTimeout(deleteNext, HOLD_DELAY);
+        }
+
+        function deleteNext() {
+            if (cursor > 0) {
+                cursor -= 1;
+                taglineEl.textContent = chars.slice(0, cursor).join('');
+                setTimeout(deleteNext, DELETE_SPEED);
+                return;
+            }
+
+            setTimeout(() => runTaglineCycle((index + 1) % TAGLINES.length), SWITCH_DELAY);
+        }
+
+        typeNext();
+    }
+
+    /* Logo glow switch — once CSS reveal ends (1.8s + 1.1s = 2.9s) */
+    setTimeout(() => logoEl.classList.add('glowing'), 2950);
+
+    /* Typed tagline starts once the logo reveal settles */
+    const LETTER_START = 2850;
+    setTimeout(() => runTaglineCycle(), LETTER_START);
+
+    const firstTaglineDuration = TAGLINES[0].text.length * TYPE_SPEED;
+    const afterLetters = LETTER_START + firstTaglineDuration + 80;
+
+    /* Accent line */
+    setTimeout(() => lineEl.classList.add('in'), afterLetters);
+
+    /* Subtitle */
+    setTimeout(() => subEl.classList.add('in'), afterLetters + 220);
+
+    /* CTA bounce up */
+    setTimeout(() => ctaEl.classList.add('in'), afterLetters + 620);
+})();
+</script>
+</body>
+</html>
