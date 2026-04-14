@@ -1,9 +1,11 @@
 import json, os, io, qrcode, math
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.utils._os import safe_join
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from .models import Employee
 
@@ -23,6 +25,19 @@ def profile(request, employee_id):
         'id_card_url': id_card_url,
         'qr_code_url': qr_code_url,
     })
+
+
+@require_GET
+def media_file(request, path):
+    try:
+        file_path = safe_join(settings.MEDIA_ROOT, path)
+    except ValueError:
+        raise Http404("Invalid media path")
+
+    if not file_path or not os.path.exists(file_path) or not os.path.isfile(file_path):
+        raise Http404("Media file not found")
+
+    return FileResponse(open(file_path, 'rb'))
 
 
 @csrf_exempt

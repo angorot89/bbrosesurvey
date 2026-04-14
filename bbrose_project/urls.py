@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
+from questionnaire import views as questionnaire_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('questionnaire.urls')),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('media/<path:path>', questionnaire_views.media_file, name='media_file'),
+]
